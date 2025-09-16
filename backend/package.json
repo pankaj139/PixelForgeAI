@@ -1,7 +1,7 @@
 {
-  "name": "backend",
+  "name": "pixelforge-ai-backend",
   "version": "1.0.0",
-  "description": "Backend service for image aspect ratio conversion",
+  "description": "Backend service for PixelForge AI - Intelligent Image Processing Platform",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

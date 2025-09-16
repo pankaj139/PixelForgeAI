@@ -32,7 +32,7 @@ The application consists of three main services:
 
    ```bash
    git clone <repository-url>
-   cd image-aspect-ratio-converter
+   cd PixelForgeAI
    ./scripts/setup.sh
    ```
 
@@ -53,7 +53,7 @@ The application consists of three main services:
 
    ```bash
    git clone <repository-url>
-   cd image-aspect-ratio-converter
+   cd PixelForgeAI
    ```
 
 2. **Start with Docker:**
@@ -96,7 +96,7 @@ pyenv global 3.11.0
 ```bash
 # Clone repository
 git clone <repository-url>
-cd image-aspect-ratio-converter
+cd PixelForgeAI
 
 # Run setup script
 ./scripts/setup.sh

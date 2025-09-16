@@ -1,7 +1,7 @@
 {
-  "name": "frontend",
+  "name": "pixelforge-ai-frontend",
   "version": "1.0.0",
-  "description": "Frontend React application for image aspect ratio conversion",
+  "description": "Frontend React application for PixelForge AI - Intelligent Image Processing Platform",
   "type": "module",
   "scripts": {
     "dev": "vite",

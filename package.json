@@ -1,7 +1,7 @@
 {
-  "name": "image-aspect-ratio-converter",
+  "name": "pixelforge-ai",
   "version": "1.0.0",
-  "description": "Web application for converting image aspect ratios with intelligent people detection",
+  "description": "PixelForge AI - Intelligent Image Processing & AI Content Generation Platform",
   "private": true,
   "workspaces": [
     "frontend",

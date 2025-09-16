@@ -1,4 +1,4 @@
-# 🖼️ Intelligent Image Processing & AI Content Generation System
+# 🚀 PixelForge AI - Intelligent Image Processing & AI Content Generation Platform
 
 A comprehensive AI-powered image processing platform that combines smart cropping, descriptive naming, Instagram content generation, sheet composition, and real-time progress tracking for professional image workflow automation.
 
@@ -62,7 +62,7 @@ A comprehensive AI-powered image processing platform that combines smart croppin
 
 ```bash
 git clone <repository-url>
-cd image
+cd PixelForgeAI
 npm install
 ```
 
