@@ -99,6 +99,17 @@ export interface ProcessedImage {
   detections: DetectionResult;
   processingTime: number;
   instagramContent?: InstagramContent;
+  instagramOptimized?: boolean; // Indicates if Instagram optimizations were applied
+  compressionMetrics?: ProcessingMetrics; // Compression and quality metrics
+}
+
+// Processing metrics for quality analysis
+export interface ProcessingMetrics {
+  originalSize: { width: number; height: number; fileSize: number };
+  finalSize: { width: number; height: number; fileSize: number };
+  compressionRatio: number;
+  qualityScore: number;
+  processingMethod: 'standard' | 'instagram-optimized';
 }
 
 export interface Dimensions {
@@ -165,6 +176,22 @@ export interface ProcessingOptions {
   sheetComposition: SheetCompositionOptions | null;
   aiNamingEnabled: boolean;
   generateInstagramContent: boolean;
+  instagramOptimization?: InstagramProcessingOptions; // Enhanced Instagram processing
+}
+
+// Instagram-specific processing options
+export interface InstagramProcessingOptions {
+  enabled: boolean; // Enable Instagram optimizations
+  enhanceColors?: boolean; // Apply mobile-optimized color enhancement
+  sharpen?: boolean; // Apply smart sharpening for social media viewing
+  generateCompressed?: boolean; // Generate compressed version for faster uploads
+  targetResolution?: 'standard' | 'high' | 'story'; // Resolution optimization level
+  compressionLevel?: 'high' | 'balanced' | 'compact'; // Compression quality
+  customEnhancements?: { // Custom color adjustments
+    saturation?: number;
+    brightness?: number;
+    contrast?: number;
+  };
 }
 
 export interface ProcessingResults {

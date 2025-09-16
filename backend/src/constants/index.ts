@@ -2,12 +2,20 @@ import { AspectRatio } from '../types';
 
 // Common aspect ratios for photo printing and display
 export const ASPECT_RATIOS: Record<string, AspectRatio> = {
+  // Traditional photo ratios
   '4x6': { width: 4, height: 6, name: '4x6', orientation: 'portrait' },
   '5x7': { width: 5, height: 7, name: '5x7', orientation: 'portrait' },
   '8x10': { width: 8, height: 10, name: '8x10', orientation: 'portrait' },
   '16x9': { width: 16, height: 9, name: '16x9', orientation: 'landscape' },
   'Square': { width: 1, height: 1, name: 'Square', orientation: 'square' },
   '3x2': { width: 3, height: 2, name: '3x2', orientation: 'landscape' },
+  
+  // Instagram-optimized ratios for maximum engagement
+  'Instagram-Post': { width: 1, height: 1, name: 'Instagram-Post', orientation: 'square' },
+  'Instagram-Portrait': { width: 4, height: 5, name: 'Instagram-Portrait', orientation: 'portrait' },
+  'Instagram-Story': { width: 9, height: 16, name: 'Instagram-Story', orientation: 'portrait' },
+  'Instagram-Reel': { width: 9, height: 16, name: 'Instagram-Reel', orientation: 'portrait' },
+  'Instagram-Landscape': { width: 1.91, height: 1, name: 'Instagram-Landscape', orientation: 'landscape' },
 } as const;
 
 // File processing constants
@@ -33,6 +41,35 @@ export const PROCESSING_CONSTANTS = {
   MAX_IMAGE_DIMENSION: 8000,
   UPSCALE_THRESHOLD: 2.0, // Maximum upscale factor
   CROP_PADDING_RATIO: 0.1, // 10% padding around detected subjects
+  // Instagram-specific processing settings
+  INSTAGRAM_QUALITY: 95, // Higher quality for Instagram
+  INSTAGRAM_MIN_RESOLUTION: 1080, // Instagram's minimum recommended width
+  INSTAGRAM_MAX_FILE_SIZE: 8 * 1024 * 1024, // 8MB Instagram limit
+} as const;
+
+// Instagram-specific processing constants for optimal mobile viewing
+export const INSTAGRAM_CONSTANTS = {
+  MIN_WIDTH: 1080, // Instagram's minimum recommended width
+  MAX_WIDTH: 1350, // Instagram's maximum width for posts
+  STORY_WIDTH: 1080, // Stories and Reels width
+  STORY_HEIGHT: 1920, // Stories and Reels height
+  QUALITY_HIGH: 95, // High quality for Instagram
+  QUALITY_COMPRESSED: 85, // Compressed version for faster uploads
+  COLOR_ENHANCEMENT: {
+    saturation: 1.1, // 10% saturation boost for mobile screens
+    brightness: 1.02, // 2% brightness boost
+    contrast: 1.05, // 5% contrast boost for better visibility
+  },
+  SHARPENING: {
+    sigma: 1.0, // Gaussian blur sigma for sharpening mask
+    flat: 1.0, // Flat areas sharpening
+    jagged: 2.0, // Jagged areas sharpening
+  },
+  COMPRESSION: {
+    mozjpeg: true, // Use mozjpeg encoder for better compression
+    progressive: true, // Progressive JPEG for faster loading
+    optimiseScans: true, // Optimize JPEG scans
+  }
 } as const;
 
 // Job status constants

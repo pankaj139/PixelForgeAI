@@ -91,6 +91,8 @@ import uploadRouter from './routes/upload';
 import processingRouter from './routes/processing';
 import downloadRouter from './routes/download';
 import jobHistoryRouter from './routes/jobHistory';
+import instagramAuthRouter from './routes/instagramAuth';
+import instagramPostRouter from './routes/instagramPost';
 import { debugRoutes } from './routes/debug';
 
 // Health check routes
@@ -103,6 +105,8 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/processing', processingRouter);
 app.use('/api/download', downloadRouter);
 app.use('/api/job-history', jobHistoryRouter);
+app.use('/api/instagram', instagramAuthRouter);
+app.use('/api/instagram', instagramPostRouter);
 app.use('/api/debug', debugRoutes);
 
 // Error handling middleware

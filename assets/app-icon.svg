@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f8f9fa;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="512" cy="512" r="512" fill="url(#bgGradient)"/>
+  
+  <!-- Main icon - Camera/Photo symbol -->
+  <g transform="translate(512, 512)">
+    <!-- Camera body -->
+    <rect x="-120" y="-80" width="240" height="160" rx="20" fill="url(#iconGradient)" stroke="#e9ecef" stroke-width="4"/>
+    
+    <!-- Camera lens -->
+    <circle cx="0" cy="-20" r="60" fill="url(#bgGradient)" stroke="#ffffff" stroke-width="6"/>
+    <circle cx="0" cy="-20" r="40" fill="none" stroke="#ffffff" stroke-width="3"/>
+    <circle cx="0" cy="-20" r="20" fill="#ffffff" opacity="0.3"/>
+    
+    <!-- Camera flash -->
+    <rect x="80" y="-100" width="20" height="30" rx="10" fill="url(#iconGradient)"/>
+    
+    <!-- AI sparkles -->
+    <g opacity="0.8">
+      <circle cx="-150" cy="-150" r="8" fill="#ffffff">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="150" cy="-120" r="6" fill="#ffffff">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="2.5s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="-120" cy="120" r="7" fill="#ffffff">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="1.8s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="120" cy="150" r="5" fill="#ffffff">
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="2.2s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+    
+    <!-- Pixel grid pattern -->
+    <g opacity="0.4">
+      <rect x="-200" y="-200" width="8" height="8" fill="#ffffff"/>
+      <rect x="-180" y="-180" width="8" height="8" fill="#ffffff"/>
+      <rect x="-160" y="-160" width="8" height="8" fill="#ffffff"/>
+      <rect x="160" y="-200" width="8" height="8" fill="#ffffff"/>
+      <rect x="180" y="-180" width="8" height="8" fill="#ffffff"/>
+      <rect x="200" y="-160" width="8" height="8" fill="#ffffff"/>
+      <rect x="-200" y="160" width="8" height="8" fill="#ffffff"/>
+      <rect x="-180" y="180" width="8" height="8" fill="#ffffff"/>
+      <rect x="-160" y="200" width="8" height="8" fill="#ffffff"/>
+      <rect x="160" y="160" width="8" height="8" fill="#ffffff"/>
+      <rect x="180" y="180" width="8" height="8" fill="#ffffff"/>
+      <rect x="200" y="200" width="8" height="8" fill="#ffffff"/>
+    </g>
+  </g>
+  
+  <!-- App name -->
+  <text x="512" y="700" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#ffffff">
+    PixelForge AI
+  </text>
+  
+  <!-- Tagline -->
+  <text x="512" y="750" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#ffffff" opacity="0.9">
+    AI-Powered Image Processing
+  </text>
+</svg>

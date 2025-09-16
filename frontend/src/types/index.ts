@@ -83,6 +83,22 @@ export interface ProcessingOptions {
   sheetComposition: SheetCompositionOptions | null;
   aiNamingEnabled: boolean;
   generateInstagramContent: boolean;
+  instagramOptimization?: InstagramProcessingOptions; // Enhanced Instagram processing
+}
+
+// Instagram-specific processing options for frontend
+export interface InstagramProcessingOptions {
+  enabled: boolean; // Enable Instagram optimizations
+  enhanceColors?: boolean; // Apply mobile-optimized color enhancement
+  sharpen?: boolean; // Apply smart sharpening for social media viewing
+  generateCompressed?: boolean; // Generate compressed version for faster uploads
+  targetResolution?: 'standard' | 'high' | 'story'; // Resolution optimization level
+  compressionLevel?: 'high' | 'balanced' | 'compact'; // Compression quality
+  customEnhancements?: { // Custom color adjustments
+    saturation?: number;
+    brightness?: number;
+    contrast?: number;
+  };
 }
 
 export interface FileMetadata {
@@ -251,12 +267,20 @@ export interface AppState {
 
 // Common aspect ratios for the frontend
 export const ASPECT_RATIOS: Record<string, AspectRatio> = {
+  // Traditional photo ratios
   '4x6': { width: 4, height: 6, name: '4x6', orientation: 'portrait' },
   '5x7': { width: 5, height: 7, name: '5x7', orientation: 'portrait' },
   '8x10': { width: 8, height: 10, name: '8x10', orientation: 'portrait' },
   '16x9': { width: 16, height: 9, name: '16x9', orientation: 'landscape' },
   'Square': { width: 1, height: 1, name: 'Square', orientation: 'square' },
   '3x2': { width: 3, height: 2, name: '3x2', orientation: 'landscape' },
+  
+  // Instagram-optimized ratios for maximum engagement
+  'Instagram-Post': { width: 1, height: 1, name: 'Instagram-Post', orientation: 'square' },
+  'Instagram-Portrait': { width: 4, height: 5, name: 'Instagram-Portrait', orientation: 'portrait' },
+  'Instagram-Story': { width: 9, height: 16, name: 'Instagram-Story', orientation: 'portrait' },
+  'Instagram-Reel': { width: 9, height: 16, name: 'Instagram-Reel', orientation: 'portrait' },
+  'Instagram-Landscape': { width: 1.91, height: 1, name: 'Instagram-Landscape', orientation: 'landscape' },
 } as const;
 
 // File constraints

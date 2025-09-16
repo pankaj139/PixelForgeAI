@@ -28,15 +28,25 @@ interface NamingOptions {
   useCache?: boolean;
 }
 
+type InstagramStyle = 'casual' | 'professional' | 'creative' | 'minimal' | 'storytelling';
+
 interface InstagramContentOptions {
   maxRetries?: number;
   useCache?: boolean;
+  captionLength?: 'short' | 'medium' | 'long'; // Up to 15, 30, or 50 words
+  style?: InstagramStyle;
+  forceRefresh?: boolean; // Ignore cache and generate new content
+  includeCallToAction?: boolean; // Add engagement prompts
+  mood?: 'happy' | 'inspirational' | 'professional' | 'fun' | 'elegant';
 }
 
 interface InstagramContent {
   caption: string;
   hashtags: string[];
   generatedAt: string;
+  wordCount: number;
+  style: string;
+  alternativeCaptions?: string[]; // Multiple caption options
 }
 
 interface CachedName {
@@ -48,6 +58,7 @@ interface CachedName {
 interface CachedInstagramContent extends InstagramContent {
   timestamp: number;
   imageHash: string;
+  options: InstagramContentOptions; // Store options used to generate content
 }
 
 export class AiNamingService {
@@ -257,49 +268,67 @@ export class AiNamingService {
   }
 
   /**
-   * Generate Instagram content (caption and hashtags) for an image
+   * Generate Instagram content (caption and hashtags) for an image with enhanced options
    */
   async generateInstagramContent(imagePath: string, options: InstagramContentOptions = {}): Promise<InstagramContent | null> {
-    const { maxRetries = 3, useCache = true } = options;
+    const {
+      maxRetries = 3,
+      useCache = true,
+      captionLength = 'medium',
+      style = 'casual',
+      forceRefresh = false,
+      includeCallToAction = true,
+      mood = 'happy'
+    } = options;
 
-    // Check cache first
-    if (useCache) {
+    // Check cache first (unless force refresh is requested)
+    if (useCache && !forceRefresh) {
       const imageHash = await this.generateImageHash(imagePath);
-      const cacheKey = `instagram-${imageHash}`;
+      const cacheKey = `instagram-${imageHash}-${style}-${captionLength}`;
       const cached = this.instagramCache.get(cacheKey);
 
       if (cached && (Date.now() - cached.timestamp) < this.cacheExpiry) {
-        console.log(`📸 Using cached Instagram content for ${path.basename(imagePath)}`);
-        return {
-          caption: cached.caption,
-          hashtags: cached.hashtags,
-          generatedAt: cached.generatedAt
-        };
+        // Check if cached content matches current options
+        const optionsMatch = this.compareInstagramOptions(cached.options, options);
+        if (optionsMatch) {
+          console.log(`📸 Using cached Instagram content for ${path.basename(imagePath)}`);
+          return {
+            caption: cached.caption,
+            hashtags: cached.hashtags,
+            generatedAt: cached.generatedAt,
+            wordCount: cached.wordCount,
+            style: cached.style,
+            alternativeCaptions: cached.alternativeCaptions
+          };
+        }
       }
     }
 
     if (this.genAI) {
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          const content = await this.analyzeImageForInstagram(imagePath);
+          console.log(`🤖 Generating Instagram content (${style} style, ${captionLength} length) - attempt ${attempt}`);
+          const content = await this.analyzeImageForInstagram(imagePath, options);
           if (content) {
-            // Cache the result
+            // Cache the result with options
             if (useCache) {
               const imageHash = await this.generateImageHash(imagePath);
-              const cacheKey = `instagram-${imageHash}`;
+              const cacheKey = `instagram-${imageHash}-${style}-${captionLength}`;
               this.instagramCache.set(cacheKey, {
                 ...content,
                 timestamp: Date.now(),
-                imageHash
+                imageHash,
+                options
               });
             }
 
-            console.log(`✅ Instagram content generated: ${content.hashtags.length} hashtags`);
+            console.log(`✅ Enhanced Instagram content generated: ${content.wordCount} words, ${content.hashtags.length} hashtags, ${content.style} style`);
             return content;
           }
         } catch (error) {
+          console.warn(`❌ Instagram content generation attempt ${attempt} failed:`, error instanceof Error ? error.message : error);
           if (attempt === maxRetries) {
-            console.warn('⚠️ Instagram content generation failed');
+            console.warn('⚠️ All Instagram content generation attempts failed');
           }
         }
       }
@@ -308,34 +337,50 @@ export class AiNamingService {
     return null;
   }
 
-  private async analyzeImageForInstagram(imagePath: string): Promise<InstagramContent | null> {
+  /**
+   * Generate multiple caption alternatives for the same image
+   */
+  async generateCaptionAlternatives(
+    imagePath: string,
+    baseOptions: InstagramContentOptions = {},
+    alternativeStyles: InstagramStyle[] = ['casual', 'professional', 'creative']
+  ): Promise<{ [style: string]: InstagramContent | null }> {
+    const alternatives: { [style: string]: InstagramContent | null } = {};
+
+    for (const style of alternativeStyles) {
+      const options = { ...baseOptions, style, forceRefresh: true };
+      alternatives[style] = await this.generateInstagramContent(imagePath, options);
+    }
+
+    return alternatives;
+  }
+
+  /**
+   * Refresh Instagram content by generating new content with the same options
+   */
+  async refreshInstagramContent(imagePath: string, previousOptions: InstagramContentOptions = {}): Promise<InstagramContent | null> {
+    const refreshOptions = { ...previousOptions, forceRefresh: true };
+    return this.generateInstagramContent(imagePath, refreshOptions);
+  }
+
+  private async analyzeImageForInstagram(imagePath: string, options: InstagramContentOptions = {}): Promise<InstagramContent | null> {
     if (!this.genAI) return null;
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
       const imageBuffer = fs.readFileSync(imagePath);
       const mimeType = this.getMimeType(imagePath);
 
-      const prompt = `Analyze this image and generate Instagram content:
+      const {
+        captionLength = 'medium',
+        style = 'casual',
+        includeCallToAction = true,
+        mood = 'happy'
+      } = options;
 
-1. Create an engaging caption (50-100 characters) with relevant emojis
-2. Generate 10-15 relevant hashtags (mix of popular and niche)
-3. Make it engaging for maximum social media interaction
-
-Return ONLY a JSON object with this structure:
-{
-  "caption": "Engaging caption with emojis",
-  "hashtags": ["hashtag1", "hashtag2", "hashtag3", ...]
-}
-
-Rules:
-- Caption should be catchy and descriptive
-- Include 2-3 relevant emojis in caption
-- Hashtags should be relevant and trending
-- Mix general and specific hashtags
-- No # symbol in hashtags (just the words)
-- Keep it authentic and engaging`;
+      // Generate enhanced prompt based on options
+      const prompt = this.generateInstagramPrompt(captionLength, style, mood, includeCallToAction);
 
       const result = await model.generateContent([
         prompt,
@@ -362,10 +407,15 @@ Rules:
         throw new Error('Invalid response structure');
       }
 
+      const wordCount = this.countWords(parsed.caption);
+      
       return {
         caption: parsed.caption.trim(),
         hashtags: parsed.hashtags.slice(0, 15), // Limit to 15 hashtags
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
+        wordCount,
+        style: style as string,
+        alternativeCaptions: parsed.alternativeCaptions || []
       };
 
     } catch (error) {
@@ -416,6 +466,123 @@ Rules:
       instagramSize: this.instagramCache.size
     };
   }
+
+  /**
+   * Generate Instagram prompt based on options
+   */
+  private generateInstagramPrompt(
+    captionLength: string,
+    style: string,
+    mood: string,
+    includeCallToAction: boolean
+  ): string {
+    const wordLimits = {
+      short: '10-15 words',
+      medium: '20-35 words',
+      long: '40-50 words'
+    };
+
+    const styleDescriptions = {
+      casual: 'casual and friendly tone',
+      professional: 'professional and polished tone',
+      creative: 'creative and artistic tone',
+      minimal: 'minimal and clean tone',
+      storytelling: 'storytelling and narrative tone'
+    };
+
+    const moodDescriptions = {
+      happy: 'upbeat and joyful',
+      inspirational: 'motivational and inspiring',
+      professional: 'serious and business-focused',
+      fun: 'playful and entertaining',
+      elegant: 'sophisticated and refined'
+    };
+
+    const callToActionExamples = includeCallToAction ? 
+      '\n- Include a subtle call-to-action (e.g., "What do you think?", "Share your thoughts!", "Tag a friend!")'
+      : '';
+
+    return `Analyze this image and generate Instagram content with the following specifications:
+
+CAPTION REQUIREMENTS:
+- Length: ${wordLimits[captionLength as keyof typeof wordLimits]} maximum
+- Style: ${styleDescriptions[style as keyof typeof styleDescriptions]}
+- Mood: ${moodDescriptions[mood as keyof typeof moodDescriptions]}
+- Include 2-3 relevant emojis naturally integrated
+- Make it engaging and authentic${callToActionExamples}
+
+HASHTAGS REQUIREMENTS:
+- Generate 12-15 relevant hashtags
+- Mix of popular and niche tags
+- Include trending and specific hashtags
+- No # symbol (just the words)
+- Relevant to the image content
+
+ADDITIONAL FEATURES:
+- Generate 2-3 alternative captions in different tones
+- Focus on maximum engagement potential
+
+Return ONLY a JSON object with this structure:
+{
+  "caption": "Main engaging caption with emojis",
+  "hashtags": ["hashtag1", "hashtag2", "hashtag3", ...],
+  "alternativeCaptions": ["alternative caption 1", "alternative caption 2"]
+}
+
+Make sure the caption is exactly within the word limit and matches the requested style and mood perfectly.`;
+  }
+
+  /**
+   * Count words in a text string
+   */
+  private countWords(text: string): number {
+    return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+  }
+
+  /**
+   * Compare Instagram options to see if they match
+   */
+  private compareInstagramOptions(cached: InstagramContentOptions, current: InstagramContentOptions): boolean {
+    const keys: (keyof InstagramContentOptions)[] = [
+      'captionLength', 'style', 'includeCallToAction', 'mood'
+    ];
+    
+    return keys.every(key => cached[key] === current[key]);
+  }
+
+  /**
+   * Extract Instagram content manually if JSON parsing fails
+   */
+  private extractInstagramContent(text: string, style: string): InstagramContent | null {
+    try {
+      // Try to find caption and hashtags in the text
+      const captionMatch = text.match(/caption['":\s]*([^"\n]+)/i);
+      const hashtagMatch = text.match(/hashtags?['":\s]*\[([^\]]+)\]/i);
+
+      if (captionMatch && hashtagMatch) {
+        const caption = captionMatch[1].trim();
+        const hashtagsText = hashtagMatch[1];
+        const hashtags = hashtagsText.split(',').map(tag => 
+          tag.trim().replace(/['"]/g, '').replace(/^#/, '')
+        );
+
+        const wordCount = this.countWords(caption);
+
+        return {
+          caption,
+          hashtags: hashtags.slice(0, 15),
+          generatedAt: new Date().toISOString(),
+          wordCount,
+          style,
+          alternativeCaptions: []
+        };
+      }
+    } catch (error) {
+      console.warn('Manual Instagram content extraction failed:', error);
+    }
+
+    return null;
+  }
 }
 
 // Lazy singleton pattern - create only when first accessed
@@ -445,6 +612,18 @@ export const aiNamingService = {
   
   clearAllCache() {
     return this.instance.clearAllCache();
+  },
+  
+  async generateCaptionAlternatives(
+    imagePath: string, 
+    baseOptions: InstagramContentOptions = {}, 
+    alternativeStyles: InstagramStyle[] = ['casual', 'professional', 'creative']
+  ) {
+    return this.instance.generateCaptionAlternatives(imagePath, baseOptions, alternativeStyles);
+  },
+
+  async refreshInstagramContent(imagePath: string, previousOptions: InstagramContentOptions = {}) {
+    return this.instance.refreshInstagramContent(imagePath, previousOptions);
   },
   
   getCacheStats() {

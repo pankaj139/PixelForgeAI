@@ -1,7 +1,7 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import axios from 'axios';
 
 // Create base axios instance
-const apiClient: AxiosInstance = axios.create({
+const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001',
   timeout: 30000, // 30 seconds for image processing
   headers: {
@@ -11,7 +11,7 @@ const apiClient: AxiosInstance = axios.create({
 
 // Request interceptor for adding auth tokens, logging, etc.
 apiClient.interceptors.request.use(
-  (config) => {
+  (config: any) => {
     // Add authentication token if available
     const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
     if (token) {
@@ -37,7 +37,7 @@ apiClient.interceptors.request.use(
     
     return config;
   },
-  (error) => {
+  (error: any) => {
     console.error('[API Request Error]', error);
     return Promise.reject(error);
   }
@@ -45,7 +45,7 @@ apiClient.interceptors.request.use(
 
 // Response interceptor for error handling and logging
 apiClient.interceptors.response.use(
-  (response: AxiosResponse) => {
+  (response: any) => {
     // Log responses in development
     if (import.meta.env.DEV) {
       console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`, {
@@ -57,7 +57,7 @@ apiClient.interceptors.response.use(
     
     return response;
   },
-  (error) => {
+  (error: any) => {
     // Enhanced error handling for hybrid Node.js/Python architecture
     const correlationId = error.response?.headers['x-correlation-id'] || 
                          error.config?.headers['x-correlation-id'];
@@ -186,17 +186,22 @@ apiClient.interceptors.response.use(
 // Specialized API methods for different endpoint types
 export const uploadApi = {
   uploadImages: (formData: FormData, onUploadProgress?: (progress: number) => void) => {
-    return apiClient.post('/api/upload', formData, {
+    const config: any = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
-      onUploadProgress: (progressEvent) => {
-        if (onUploadProgress && progressEvent.total) {
+    };
+    
+    if (onUploadProgress) {
+      config.onUploadProgress = (progressEvent: any) => {
+        if (progressEvent.total) {
           const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
           onUploadProgress(progress);
         }
-      },
-    });
+      };
+    }
+    
+    return apiClient.post('/api/upload', formData, config);
   },
   
   validateFiles: (formData: FormData) => {
@@ -261,6 +266,79 @@ export const downloadApi = {
   
   getDownloadStatus: (jobId: string) => {
     return apiClient.get(`/api/download/status/${jobId}`);
+  },
+};
+
+export const instagramApi = {
+  // Authentication
+  getAuthUrl: (scopes?: string, state?: string) => {
+    const params = new URLSearchParams();
+    if (scopes) params.append('scopes', scopes);
+    if (state) params.append('state', state);
+    return apiClient.get(`/api/instagram/auth/url?${params}`);
+  },
+  
+  exchangeToken: (code: string, state?: string) => {
+    return apiClient.post('/api/instagram/auth/token', { code, state });
+  },
+  
+  refreshToken: (accessToken: string) => {
+    return apiClient.post('/api/instagram/auth/refresh', { accessToken });
+  },
+  
+  validateToken: (accessToken: string) => {
+    return apiClient.post('/api/instagram/auth/validate', { accessToken });
+  },
+  
+  getUserProfile: (accessToken: string) => {
+    return apiClient.get('/api/instagram/profile', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  },
+  
+  // Posting
+  postImage: (data: {
+    imageId: string;
+    caption?: string;
+    hashtags?: string[];
+    accessToken: string;
+    location?: { name: string; latitude?: number; longitude?: number };
+    altText?: string;
+    isStory?: boolean;
+  }) => {
+    return apiClient.post('/api/instagram/post', data);
+  },
+  
+  refreshCaption: (imageId: string, options?: {
+    captionLength?: 'short' | 'medium' | 'long';
+    style?: 'casual' | 'professional' | 'creative' | 'minimal' | 'storytelling';
+    mood?: 'happy' | 'inspirational' | 'professional' | 'fun' | 'elegant';
+    includeCallToAction?: boolean;
+  }) => {
+    return apiClient.post('/api/instagram/caption/refresh', { imageId, options });
+  },
+  
+  getCaptionAlternatives: (imageId: string, styles?: string[]) => {
+    return apiClient.post('/api/instagram/caption/alternatives', { imageId, styles });
+  },
+  
+  batchPost: (data: {
+    jobId: string;
+    accessToken: string;
+    postingOptions?: {
+      delayBetweenPosts?: number;
+      postToStory?: boolean;
+      skipFailedImages?: boolean;
+      captionOptions?: {
+        captionLength?: 'short' | 'medium' | 'long';
+        style?: 'casual' | 'professional' | 'creative' | 'minimal' | 'storytelling';
+        mood?: 'happy' | 'inspirational' | 'professional' | 'fun' | 'elegant';
+      };
+    };
+  }) => {
+    return apiClient.post('/api/instagram/post/batch', data);
   },
 };
 

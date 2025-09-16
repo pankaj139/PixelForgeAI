@@ -36,6 +36,7 @@ import {
   ProcessingResults
 } from '../types/index.js';
 import { imageProcessingService } from './imageProcessingService.js';
+import { instagramProcessingService } from './instagramProcessingService.js';
 import { sheetCompositionService } from './sheetCompositionService.js';
 import { pdfGenerationService } from './pdfGenerationService.js';
 import { getPythonServiceClient, PythonServiceError } from './pythonServiceClient.js';
@@ -403,20 +404,59 @@ export class ProcessingPipelineService {
             if (isTestEnv) {
               console.log('[ProcessingPipelineService] Local fallback processing (per-image)');
             }
-            processedImage = await imageProcessingService.processImageToAspectRatio(
-              file.uploadPath,
-              job.options.aspectRatio,
-              {
-                faceDetectionEnabled: job.options.faceDetectionEnabled,
-                aiNamingEnabled: job.options.aiNamingEnabled,
-                generateInstagramContent: job.options.generateInstagramContent,
-                quality: 90,
-                format: 'jpeg',
-                outputDir: options.outputDir
+
+            // Check if Instagram optimization is enabled and use Instagram service
+            if (job.options.instagramOptimization?.enabled && 
+                job.options.aspectRatio.name.startsWith('Instagram-')) {
+              console.log(`Processing with Instagram optimizations: ${job.options.aspectRatio.name}`);
+              
+              const instagramResult = await instagramProcessingService.processForInstagram(
+                file.uploadPath,
+                options.outputDir,
+                job.options.aspectRatio.name,
+                {
+                  enhanceColors: job.options.instagramOptimization.enhanceColors,
+                  sharpen: job.options.instagramOptimization.sharpen,
+                  generateCompressed: job.options.instagramOptimization.generateCompressed,
+                  targetResolution: job.options.instagramOptimization.targetResolution,
+                  compressionLevel: job.options.instagramOptimization.compressionLevel,
+                  customEnhancements: job.options.instagramOptimization.customEnhancements
+                }
+              );
+
+              if (!instagramResult.success) {
+                throw new Error(`Instagram processing failed: ${instagramResult.error}`);
               }
-            );
-            // Set the original file ID
-            processedImage.originalFileId = file.id;
+
+              // Use the high-quality version as the primary processed image
+              processedImage = instagramResult.processedImages.high;
+              processedImage.originalFileId = file.id;
+              processedImage.instagramOptimized = true;
+              processedImage.compressionMetrics = {
+                ...instagramResult.metrics,
+                processingMethod: 'instagram-optimized'
+              };
+
+              // If Instagram content generation is enabled, it would be added by AI service later
+              console.log(`Instagram processing completed: ${instagramResult.metrics.finalSize.width}x${instagramResult.metrics.finalSize.height}`);
+              
+            } else {
+              // Standard processing
+              processedImage = await imageProcessingService.processImageToAspectRatio(
+                file.uploadPath,
+                job.options.aspectRatio,
+                {
+                  faceDetectionEnabled: job.options.faceDetectionEnabled,
+                  aiNamingEnabled: job.options.aiNamingEnabled,
+                  generateInstagramContent: job.options.generateInstagramContent,
+                  quality: job.options.instagramOptimization?.enabled ? 95 : 90, // Higher quality if Instagram optimization is enabled
+                  format: 'jpeg',
+                  outputDir: options.outputDir
+                }
+              );
+              // Set the original file ID
+              processedImage.originalFileId = file.id;
+            }
           }
 
           processedImages.push(processedImage);

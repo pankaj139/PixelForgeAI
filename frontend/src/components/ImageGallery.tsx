@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ProcessedImage } from '../types';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
+import { useInstagram } from '../hooks/useInstagram';
+import InstagramAuth from './InstagramAuth';
 
 interface ImageGalleryProps {
   images: ProcessedImage[];
@@ -15,6 +17,29 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
   isDownloading = false,
 }) => {
   const [selectedImage, setSelectedImage] = useState<ProcessedImage | null>(null);
+  const [showInstagramAuth, setShowInstagramAuth] = useState(false);
+  const { isConnected, postImage, isPosting, postError, lastPostResult } = useInstagram();
+
+  // Instagram posting function
+  const handlePostToInstagram = async (image: ProcessedImage) => {
+    if (!isConnected) {
+      setShowInstagramAuth(true);
+      return;
+    }
+
+    try {
+      await postImage({
+        imageId: image.id,
+        caption: image.instagramContent?.caption,
+        hashtags: image.instagramContent?.hashtags,
+      });
+      
+      // Show success message
+      console.log('Posted to Instagram successfully!');
+    } catch (error) {
+      console.error('Failed to post to Instagram:', error);
+    }
+  };
 
   // Navigation functions
   const getCurrentImageIndex = () => {
@@ -143,8 +168,23 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
                     }}
                     disabled={isDownloading}
                   >
-                    Download
+                    📥 Download
                   </Button>
+                  {image.instagramContent && (
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePostToInstagram(image);
+                      }}
+                      disabled={isPosting}
+                      loading={isPosting}
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                    >
+                      📸 Post
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -218,7 +258,35 @@ export const ImageGallery: React.FC<ImageGalleryProps> = ({
           hasNext={getCurrentImageIndex() < images.length - 1}
           hasPrevious={getCurrentImageIndex() > 0}
           isDownloading={isDownloading}
+          onPostToInstagram={handlePostToInstagram}
+          isPosting={isPosting}
         />
+      )}
+
+      {/* Instagram Authentication Modal */}
+      {showInstagramAuth && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={() => setShowInstagramAuth(false)}></div>
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Connect to Instagram</h3>
+                  <button
+                    onClick={() => setShowInstagramAuth(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <InstagramAuth 
+                  onAuthSuccess={() => setShowInstagramAuth(false)}
+                  onDisconnect={() => setShowInstagramAuth(false)}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -235,6 +303,8 @@ interface ImageModalProps {
   hasNext: boolean;
   hasPrevious: boolean;
   isDownloading: boolean;
+  onPostToInstagram?: (image: ProcessedImage) => void;
+  isPosting?: boolean;
 }
 
 const ImageModal: React.FC<ImageModalProps> = ({
@@ -248,6 +318,8 @@ const ImageModal: React.FC<ImageModalProps> = ({
   hasNext,
   hasPrevious,
   isDownloading,
+  onPostToInstagram,
+  isPosting = false,
 }) => {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -461,13 +533,24 @@ const ImageModal: React.FC<ImageModalProps> = ({
                   Close
                 </Button>
                 <Button
-                  variant="primary"
+                  variant="outline"
                   onClick={onDownload}
                   disabled={isDownloading}
                   loading={isDownloading}
                 >
-                  Download Image
+                  📥 Download
                 </Button>
+                {image.instagramContent && onPostToInstagram && (
+                  <Button
+                    variant="primary"
+                    onClick={() => onPostToInstagram(image)}
+                    disabled={isPosting}
+                    loading={isPosting}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  >
+                    📸 Post to Instagram
+                  </Button>
+                )}
               </div>
             </div>
           </div>

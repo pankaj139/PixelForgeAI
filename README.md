@@ -21,10 +21,19 @@ A comprehensive AI-powered image processing platform that combines smart croppin
 ### 🤖 AI-Powered Intelligence Suite
 
 - **Smart Naming**: Generates meaningful 2-word descriptive filenames using Google Gemini Vision API
-- **Instagram Content Generation**:
-  - Engaging captions (50-100 characters) with relevant emojis
-  - 10-15 trending hashtags (mix of popular and niche)
+- **Enhanced Instagram Content Generation**:
+  - Smart captions up to 50 words with multiple style options (casual, professional, creative, storytelling)
+  - Caption refresh functionality with different moods (happy, inspirational, professional, fun, elegant)  
+  - 12-15 trending hashtags (mix of popular and niche)
+  - Alternative caption generation in different tones
   - Optimized for maximum social media engagement
+- **Direct Instagram Posting**:
+  - OAuth authentication flow for secure Instagram account connection
+  - Direct posting to Instagram feed with AI-generated captions and hashtags
+  - Instagram Story posting capabilities
+  - Batch posting with progress tracking and rate limiting
+  - Post analytics and insights retrieval
+  - Real-time posting status updates
 - **Filename Examples**: `family_portrait_4x6.jpg`, `beach_sunset_8x10.jpg`, `birthday_celebration_square.jpg`
 - **Content Analysis**: AI understands image mood, subjects, setting, and context
 - **Smart Caching**: 24-hour cache for AI analysis results to improve performance
@@ -54,7 +63,9 @@ A comprehensive AI-powered image processing platform that combines smart croppin
 
 - Node.js 18+
 - Python 3.8+
-- Google Gemini API key (for AI naming)
+- Google Gemini API key (for AI naming and Instagram content)
+- Instagram Developer Account (for direct posting)
+- Facebook App with Instagram Basic Display API access
 
 ### Installation
 
@@ -107,8 +118,14 @@ npm start
 # AI Services
 GEMINI_API_KEY=your_gemini_api_key_here
 
+# Instagram MCP Integration
+INSTAGRAM_CLIENT_ID=your_instagram_app_id
+INSTAGRAM_CLIENT_SECRET=your_instagram_app_secret
+INSTAGRAM_REDIRECT_URI=http://localhost:3001/auth/instagram/callback
+
 # Service URLs
 PYTHON_SERVICE_URL=http://localhost:8001
+FRONTEND_URL=http://localhost:3000
 
 # Storage
 UPLOAD_DIR=./uploads
@@ -174,10 +191,20 @@ GET /api/download/file/:filename
 
 ```typescript
 interface ProcessingOptions {
-  aspectRatio: AspectRatio;           // 4x6, 5x7, 8x10, 16x9, Square, 3x2
+  aspectRatio: AspectRatio;           // 4x6, 5x7, 8x10, 16x9, Square, 3x2, Instagram-*
   faceDetectionEnabled: boolean;      // AI-powered smart cropping
   aiNamingEnabled: boolean;           // Descriptive filename generation
-  generateInstagramContent: boolean;  // Captions and hashtags
+  generateInstagramContent: boolean;  // Enhanced captions and hashtags (up to 50 words)
+  instagramOptimization?: {           // Instagram-specific enhancements
+    enabled: boolean;
+    enhanceColors: boolean;           // Mobile-optimized color enhancement
+    sharpen: boolean;                 // Smart sharpening for social media
+    generateCompressed: boolean;      // Dual format export
+    targetResolution: 'standard' | 'high' | 'story';
+    captionLength: 'short' | 'medium' | 'long';  // 15, 30, or 50 words
+    style: 'casual' | 'professional' | 'creative' | 'minimal' | 'storytelling';
+    mood: 'happy' | 'inspirational' | 'professional' | 'fun' | 'elegant';
+  };
   sheetComposition: {                // Optional A4 layouts
     enabled: boolean;
     gridLayout: GridLayout;          // 1x1, 1x2, 2x2, 3x3, etc.
