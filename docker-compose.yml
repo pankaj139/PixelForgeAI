@@ -1,0 +1,101 @@
+services:
+  # Python FastAPI Image Processing Service
+  python-service:
+    build:
+      context: ./python-service
+      dockerfile: Dockerfile
+    container_name: image-processing-python-service
+    ports:
+      - "8000:8000"
+    environment:
+      - IMAGE_SERVICE_HOST=0.0.0.0
+      - IMAGE_SERVICE_PORT=8000
+      - IMAGE_SERVICE_ENVIRONMENT=development
+      - IMAGE_SERVICE_DEBUG=true
+      - IMAGE_SERVICE_UPLOAD_DIR=/app/uploads
+      - IMAGE_SERVICE_PROCESSED_DIR=/app/processed
+      - IMAGE_SERVICE_TEMP_DIR=/app/temp
+      - IMAGE_SERVICE_MAX_IMAGE_SIZE=52428800
+      - IMAGE_SERVICE_FACE_DETECTION_CONFIDENCE=0.5
+      - IMAGE_SERVICE_PERSON_DETECTION_CONFIDENCE=0.5
+    volumes:
+      - ./uploads:/app/uploads
+      - ./processed:/app/processed
+      - ./python-service/temp:/app/temp
+      - ./python-service/models:/app/models
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Node.js Backend API Service
+  nodejs-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: image-processing-nodejs-backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - FRONTEND_URL=http://localhost:3000
+      - PYTHON_SERVICE_URL=http://python-service:8000
+      - PYTHON_SERVICE_TIMEOUT=30000
+      - PYTHON_SERVICE_MAX_RETRIES=3
+      - UPLOAD_DIR=/app/uploads
+      - PROCESSED_DIR=/app/processed
+      - MAX_FILE_SIZE=52428800
+      - MAX_FILES_PER_REQUEST=10
+      - ALLOWED_FILE_TYPES=image/jpeg,image/png,image/webp,image/tiff
+      - UPLOAD_CLEANUP_HOURS=24
+    volumes:
+      - ./uploads:/app/uploads
+      - ./processed:/app/processed
+      - ./backend/data:/app/data
+    networks:
+      - app-network
+    depends_on:
+      python-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # React Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: image-processing-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:3001
+      - VITE_ENVIRONMENT=development
+    networks:
+      - app-network
+    depends_on:
+      - nodejs-backend
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  uploads:
+    driver: local
+  processed:
+    driver: local
+  models:
+    driver: local

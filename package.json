@@ -1,0 +1,49 @@
+{
+  "name": "image-aspect-ratio-converter",
+  "version": "1.0.0",
+  "description": "Web application for converting image aspect ratios with intelligent people detection",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:python\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:python": "cd python-service && python main.py",
+    "dev:services": "concurrently \"npm run dev:python\" \"npm run dev:backend\"",
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:backend": "npm run build --workspace=backend",
+    "test": "npm run test --workspace=backend && npm run test --workspace=frontend && npm run test:python",
+    "test:frontend": "npm run test --workspace=frontend",
+    "test:backend": "npm run test --workspace=backend",
+    "test:python": "cd python-service && python3 -m pytest tests/ -v",
+    "lint": "npm run lint --workspace=backend && npm run lint --workspace=frontend",
+    "lint:fix": "npm run lint:fix --workspace=backend && npm run lint:fix --workspace=frontend",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "podman:build": "podman-compose build",
+    "podman:up": "podman-compose up -d",
+    "podman:down": "podman-compose down",
+    "podman:logs": "podman-compose logs -f",
+    "podman:dev": "podman-compose -f docker-compose.yml -f docker-compose.dev.yml up",
+    "container:build": "podman-compose build",
+    "container:up": "podman-compose up -d",
+    "container:down": "podman-compose down",
+    "container:logs": "podman-compose logs -f",
+    "container:dev": "podman-compose -f docker-compose.yml -f docker-compose.dev.yml up",
+    "setup:python": "cd python-service && pip install -r requirements.txt",
+    "setup:dev": "npm install && npm run setup:python",
+    "health:check": "curl -f http://localhost:3001/health && curl -f http://localhost:8000/health"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "prettier": "^3.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

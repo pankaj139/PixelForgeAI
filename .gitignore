@@ -1,0 +1,79 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.kiro/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Temporary folders
+tmp/
+temp/
+
+# Uploads and processed files (for development)
+uploads/
+processed/
+test-uploads/
+test-processed/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.pytest_cache/
+
+# Test artifacts
+vitest-*.txt
+test-*.js
+test-*.py
+*test*.jpg
+*test*.jpeg
+*test*.png
+sample-*.jpg
+sample-*.jpeg
+simple-test.*
+
+# IDE specific files
+.kiro/
+
+# Development scripts and examples
+*-integration-example.*
+*-vision-example.*
+check-*.js

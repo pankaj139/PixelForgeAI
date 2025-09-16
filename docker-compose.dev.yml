@@ -1,0 +1,27 @@
+services:
+  python-service:
+    volumes:
+      - ./python-service:/app
+      - /app/__pycache__
+    environment:
+      - IMAGE_SERVICE_DEBUG=true
+      - IMAGE_SERVICE_ENVIRONMENT=development
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  nodejs-backend:
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - /app/dist
+    environment:
+      - NODE_ENV=development
+    command: ["npm", "run", "dev"]
+
+  frontend:
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/dist
+    environment:
+      - VITE_ENVIRONMENT=development
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
