@@ -25,6 +25,7 @@
  */
 
 import nodemailer from 'nodemailer';
+// NOTE: nodemailer does not expose createTransporter; correct API is createTransport
 
 interface EmailConfig {
   host: string;
@@ -68,8 +69,8 @@ export class EmailService {
     try {
       // For development, use a test account or mock transporter
       if (process.env.NODE_ENV === 'development' && !this.config.auth.user) {
-        // Create a test account for development
-        this.transporter = nodemailer.createTransporter({
+        // Use a stubbed transport that just logs (could optionally use nodemailer's createTestAccount)
+        this.transporter = nodemailer.createTransport({
           host: 'smtp.ethereal.email',
           port: 587,
           secure: false,
@@ -78,12 +79,12 @@ export class EmailService {
             pass: 'ethereal.pass'
           }
         });
-        console.log('Email service initialized with Ethereal test account');
+        console.log('[EmailService] Initialized with Ethereal test account');
       } else if (this.config.auth.user && this.config.auth.pass) {
-        this.transporter = nodemailer.createTransporter(this.config);
-        console.log('Email service initialized with SMTP configuration');
+        this.transporter = nodemailer.createTransport(this.config);
+        console.log('[EmailService] Initialized with SMTP configuration');
       } else {
-        console.warn('Email service not configured - emails will be logged to console');
+        console.warn('[EmailService] Not configured - emails will be logged to console');
       }
     } catch (error) {
       console.error('Failed to initialize email service:', error);

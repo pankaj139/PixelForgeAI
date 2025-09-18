@@ -270,75 +270,35 @@ export const downloadApi = {
 };
 
 export const instagramApi = {
-  // Authentication
-  getAuthUrl: (scopes?: string, state?: string) => {
-    const params = new URLSearchParams();
-    if (scopes) params.append('scopes', scopes);
-    if (state) params.append('state', state);
-    return apiClient.get(`/api/instagram/auth/url?${params}`);
-  },
-  
-  exchangeToken: (code: string, state?: string) => {
-    return apiClient.post('/api/instagram/auth/token', { code, state });
-  },
-  
-  refreshToken: (accessToken: string) => {
-    return apiClient.post('/api/instagram/auth/refresh', { accessToken });
-  },
-  
-  validateToken: (accessToken: string) => {
-    return apiClient.post('/api/instagram/auth/validate', { accessToken });
-  },
-  
-  getUserProfile: (accessToken: string) => {
-    return apiClient.get('/api/instagram/profile', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-  },
-  
-  // Posting
-  postImage: (data: {
-    imageId: string;
-    caption?: string;
-    hashtags?: string[];
-    accessToken: string;
-    location?: { name: string; latitude?: number; longitude?: number };
-    altText?: string;
-    isStory?: boolean;
+  // Content generation (no authentication required)
+  generateContent: (imageId: string, options?: {
+    style?: 'casual' | 'professional' | 'creative' | 'inspirational' | 'humorous';
+    mood?: 'happy' | 'excited' | 'calm' | 'thoughtful' | 'energetic';
+    length?: 'short' | 'medium' | 'long';
+    includeHashtags?: boolean;
+    maxHashtags?: number;
   }) => {
-    return apiClient.post('/api/instagram/post', data);
+    return apiClient.post('/api/instagram/content/generate', { imageId, options });
   },
   
-  refreshCaption: (imageId: string, options?: {
-    captionLength?: 'short' | 'medium' | 'long';
-    style?: 'casual' | 'professional' | 'creative' | 'minimal' | 'storytelling';
-    mood?: 'happy' | 'inspirational' | 'professional' | 'fun' | 'elegant';
-    includeCallToAction?: boolean;
+  getContentAlternatives: (imageId: string, styles: string[], options?: {
+    includeHashtags?: boolean;
+    maxHashtags?: number;
   }) => {
-    return apiClient.post('/api/instagram/caption/refresh', { imageId, options });
+    return apiClient.post('/api/instagram/content/alternatives', { imageId, styles, options });
   },
   
-  getCaptionAlternatives: (imageId: string, styles?: string[]) => {
-    return apiClient.post('/api/instagram/caption/alternatives', { imageId, styles });
+  refreshContent: (imageId: string, currentCaption?: string, newStyle?: string, newMood?: string) => {
+    return apiClient.post('/api/instagram/content/refresh', { imageId, currentCaption, newStyle, newMood });
   },
   
-  batchPost: (data: {
-    jobId: string;
-    accessToken: string;
-    postingOptions?: {
-      delayBetweenPosts?: number;
-      postToStory?: boolean;
-      skipFailedImages?: boolean;
-      captionOptions?: {
-        captionLength?: 'short' | 'medium' | 'long';
-        style?: 'casual' | 'professional' | 'creative' | 'minimal' | 'storytelling';
-        mood?: 'happy' | 'inspirational' | 'professional' | 'fun' | 'elegant';
-      };
-    };
+  getBatchContent: (jobId: string, options?: {
+    style?: 'casual' | 'professional' | 'creative' | 'inspirational' | 'humorous';
+    mood?: 'happy' | 'excited' | 'calm' | 'thoughtful' | 'energetic';
+    includeHashtags?: boolean;
+    maxHashtags?: number;
   }) => {
-    return apiClient.post('/api/instagram/post/batch', data);
+    return apiClient.post('/api/instagram/content/batch', { jobId, options });
   },
 };
 

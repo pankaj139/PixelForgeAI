@@ -1,17 +1,6 @@
 export { ComputerVisionService, computerVisionService } from './computerVisionService.js';
 export { CroppingService, croppingService } from './croppingService.js';
 export { ImageProcessingService, imageProcessingService } from './imageProcessingService.js';
-export { InstagramProcessingService, instagramProcessingService } from './instagramProcessingService.js';
-export { 
-  InstagramGraphService, 
-  instagramGraphService, 
-  createInstagramGraphService 
-} from './instagramGraphService.js';
-export { 
-  InstagramLoginService, 
-  instagramLoginService, 
-  createInstagramLoginService 
-} from './instagramLoginService.js';
 export { SheetCompositionService, sheetCompositionService } from './sheetCompositionService.js';
 export { PDFGenerationService, pdfGenerationService } from './pdfGenerationService.js';
 export { JobProcessingService, jobProcessingService } from './jobProcessingService.js';

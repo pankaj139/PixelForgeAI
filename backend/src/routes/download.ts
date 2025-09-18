@@ -328,7 +328,8 @@ router.get('/zip/:jobId', async (req: Request, res: Response) => {
     }
 
     // Finalize the archive
-    await archive.finalize();
+  await archive.finalize();
+  return; // Explicit return after streaming archive
 
   } catch (error) {
     console.error('ZIP download error:', error);

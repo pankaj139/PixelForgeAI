@@ -1,7 +1,15 @@
 /**
  * Job History Service Tests
  * 
- * Purpose: Comprehensive unit and integration tests for the job history service,
+ * Purpose: Comprehensive unit and integ        options: {
+          aspectRatio: { name: '5x7', width: 5, height: 7, orientation: 'portrait' },
+          faceDetectionEnabled: true,
+          sheetComposition: { 
+            enabled: false,
+            gridLayout: { rows: 2, columns: 2, name: '2x2' },
+            orientation: 'portrait',
+            generatePDF: false
+          },on tests for the job history service,
  * including filtering, search, pagination, statistics, and job management operations.
  * 
  * Test Coverage:
@@ -46,7 +54,15 @@ describe('JobHistoryService', () => {
       deleteFile: vi.fn(),
       deleteProcessedImage: vi.fn(),
       deleteComposedSheet: vi.fn(),
-      userOwnsJob: vi.fn()
+      userOwnsJob: vi.fn(),
+      getFilesByJobId: vi.fn(),
+      getProcessedImagesByJobId: vi.fn(),
+      getComposedSheetsByJobId: vi.fn(),
+      getUserById: vi.fn(),
+      getPasswordResetTokenByToken: vi.fn(),
+      markPasswordResetTokenAsUsed: vi.fn(),
+      getUserByEmail: vi.fn(),
+      createPasswordResetToken: vi.fn()
     };
 
     (getDatabase as any).mockReturnValue(mockDb);

@@ -209,7 +209,8 @@ router.get('/python-service/health', async (_req: Request, res: Response) => {
         status: healthStatus.status,
         timestamp: healthStatus.timestamp,
         version: healthStatus.version,
-        uptime: healthStatus.uptime
+  // Python health response uses uptime_seconds
+  uptime: (healthStatus as any).uptime_seconds ?? (healthStatus as any).uptime
       }
     });
   } catch (error) {

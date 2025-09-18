@@ -31,7 +31,16 @@ export class DebugUtils {
    */
   async listRecentProcessedImages(limit: number = 10): Promise<void> {
     const db = getDatabase();
-    const recentImages = await db.getRecentProcessedImages(limit);
+    // Fallback if method not present (legacy environments)
+    let recentImages: any[] = [];
+    if (typeof (db as any).getRecentProcessedImages === 'function') {
+      recentImages = await (db as any).getRecentProcessedImages(limit);
+    } else {
+      // Derive from all processed images grouped by job
+      const all: any[] = [];
+  // No legacy fallback derivation available without enumeration APIs
+      recentImages = all.slice(0, limit);
+    }
     
     console.log(`\n📋 Recent ${limit} processed images:`);
     console.log('─'.repeat(80));
@@ -39,14 +48,15 @@ export class DebugUtils {
     const pathCounts = new Map<string, number>();
     
     for (const image of recentImages) {
-      const count = pathCounts.get(image.processedPath) || 0;
+  const processedPath: string = image.processedPath;
+  const count = pathCounts.get(processedPath) || 0;
       pathCounts.set(image.processedPath, count + 1);
       
       const duplicate = count > 0 ? ' 🚨 DUPLICATE!' : '';
-      console.log(`${image.id.slice(0, 8)} | ${image.processedPath}${duplicate}`);
+  console.log(`${String(image.id).slice(0, 8)} | ${processedPath}${duplicate}`);
       
-      if (fs.existsSync(image.processedPath)) {
-        const stats = fs.statSync(image.processedPath);
+      if (processedPath && fs.existsSync(processedPath)) {
+        const stats = fs.statSync(processedPath);
         console.log(`         Size: ${stats.size} bytes, Modified: ${stats.mtime.toISOString()}`);
       } else {
         console.log(`         ❌ FILE NOT FOUND`);

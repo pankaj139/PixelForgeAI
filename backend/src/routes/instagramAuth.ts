@@ -71,10 +71,10 @@ router.get('/auth/url', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { scopes, state } = req.query;
     
-    // Parse scopes if provided
+    // Parse scopes if provided (Instagram Graph API scopes)
     const scopeArray = typeof scopes === 'string' 
       ? scopes.split(',').map(s => s.trim())
-      : ['user_profile', 'user_media'];
+      : ['instagram_business_basic', 'instagram_business_content_publish'];
     
     // Generate state parameter if not provided (CSRF protection)
     const stateParam = typeof state === 'string' ? state : `state_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -163,7 +163,6 @@ router.post('/auth/token', authMiddleware, async (req: Request, res: Response) =
         tokenType: tokenResponse.token_type,
         userId: tokenResponse.user_id,
         expiresIn: tokenResponse.expires_in,
-        scope: tokenResponse.scope,
         userProfile: {
           id: userInfo.id,
           username: userInfo.username,
@@ -221,10 +220,10 @@ router.post('/auth/refresh', authMiddleware, async (req: Request, res: Response)
     });
 
     // Refresh the access token
-    const refreshedToken = await instagramMcpService.refreshAccessToken(validatedData.accessToken);
+    const refreshedToken = await instagramLoginService.refreshAccessToken(validatedData.accessToken);
     
     // Verify the new token works
-    const userInfo = await instagramMcpService.getUserInfo(refreshedToken.access_token);
+    const userInfo = await instagramLoginService.getUserInfo(refreshedToken.access_token);
     
     logger.info('Instagram token refresh successful', {
       userId: (req as any).user?.id,
@@ -284,10 +283,10 @@ router.post('/auth/validate', authMiddleware, async (req: Request, res: Response
     const validatedData = ValidateTokenSchema.parse(req.body);
     
     // Validate token by attempting to get user info
-    const isValid = await instagramMcpService.validateAccessToken(validatedData.accessToken);
+    const isValid = await instagramLoginService.validateAccessToken(validatedData.accessToken);
     
     if (isValid) {
-      const userInfo = await instagramMcpService.getUserInfo(validatedData.accessToken);
+      const userInfo = await instagramLoginService.getUserInfo(validatedData.accessToken);
       
       logger.info('Instagram token validation successful', {
         userId: (req as any).user?.id,
@@ -349,7 +348,7 @@ router.post('/auth/validate', authMiddleware, async (req: Request, res: Response
  * 
  * Returns detailed Instagram user profile information
  */
-router.get('/profile', authMiddleware, async (req: Request, res: Response) => {
+router.get('/profile', authMiddleware, async (req: Request, res: Response): Promise<Response | void> => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -363,7 +362,7 @@ router.get('/profile', authMiddleware, async (req: Request, res: Response) => {
     const accessToken = authHeader.replace('Bearer ', '');
     
     // Get user profile information
-    const userInfo = await instagramMcpService.getUserInfo(accessToken);
+    const userInfo = await instagramLoginService.getUserInfo(accessToken);
     
     logger.info('Instagram profile retrieved', {
       userId: (req as any).user?.id,
@@ -371,7 +370,7 @@ router.get('/profile', authMiddleware, async (req: Request, res: Response) => {
       instagramUsername: userInfo.username
     });
 
-    res.json({
+  return res.json({
       success: true,
       data: {
         profile: {
@@ -398,7 +397,7 @@ router.get('/profile', authMiddleware, async (req: Request, res: Response) => {
       userId: (req as any).user?.id
     });
 
-    res.status(400).json({
+  return res.status(400).json({
       success: false,
       error: 'Failed to retrieve Instagram profile',
       message: error instanceof Error ? error.message : 'Profile retrieval failed',

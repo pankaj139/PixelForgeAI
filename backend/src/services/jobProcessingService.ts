@@ -202,14 +202,32 @@ export class JobProcessingService extends EventEmitter {
         percentage: 100
       }, 'completed');
 
+      // Normalize result objects to satisfy schema expectations (add jobId/createdAt)
+      const now = new Date();
+      const normalizedProcessed = processingResults.processedImages.map((img: any) => ({
+        ...img,
+        jobId,
+        createdAt: img.createdAt || now
+      }));
+      const normalizedSheets = processingResults.composedSheets.map((sheet: any) => ({
+        ...sheet,
+        jobId,
+        createdAt: sheet.createdAt || now,
+        images: (sheet.images || []).map((img: any) => ({
+          ...img,
+          jobId,
+          createdAt: img.createdAt || now
+        }))
+      }));
+
       // Store results in database
-      await this.storeProcessingResults(jobId, processingResults);
+      await this.storeProcessingResults(jobId, { ...processingResults, processedImages: normalizedProcessed, composedSheets: normalizedSheets });
 
       const result: JobProcessingResult = {
         success: true,
         jobId,
-        processedImages: processingResults.processedImages,
-        composedSheets: processingResults.composedSheets,
+        processedImages: normalizedProcessed,
+        composedSheets: normalizedSheets,
         ...(processingResults.pdfPath && { pdfPath: processingResults.pdfPath }),
         ...(processingResults.zipPath && { zipPath: processingResults.zipPath })
       };

@@ -42,13 +42,13 @@ const upload = multer({
   fileFilter,
   limits: {
     fileSize: MAX_FILE_SIZE,
-    files: 20 // Maximum 10 files per request
+    files: 20 // Maximum 20 files per request
   }
 });
 
 // Upload endpoint with authentication and explicit multer error handling wrapper to ensure consistent JSON errors
 router.post('/', authenticateToken, (req: Request, res: Response, next) => {
-  upload.array('images', 10)(req, res, (err: any) => {
+  return upload.array('images', 10)(req, res, (err: any) => {
     if (err) {
       const isMulter = err instanceof (multer as any).MulterError;
       return res.status(400).json({
@@ -56,9 +56,9 @@ router.post('/', authenticateToken, (req: Request, res: Response, next) => {
         code: isMulter ? err.code || 'MULTER_ERROR' : 'UPLOAD_ERROR'
       });
     }
-    next();
+    return next();
   });
-}, async (req: Request, res: Response) => {
+}, async (req: Request, res: Response): Promise<Response | void> => {
   const uploadedFiles: string[] = []; // Track files for cleanup on error
 
   try {
@@ -196,7 +196,7 @@ router.post('/', authenticateToken, (req: Request, res: Response, next) => {
 
 // Validate files without uploading (for client-side validation) with multer wrapper
 router.post('/validate', (req: Request, res: Response, next) => {
-  upload.array('images', 10)(req, res, (err: any) => {
+  return upload.array('images', 10)(req, res, (err: any) => {
     if (err) {
       const isMulter = err instanceof (multer as any).MulterError;
       return res.status(400).json({
@@ -205,9 +205,9 @@ router.post('/validate', (req: Request, res: Response, next) => {
         code: isMulter ? err.code || 'MULTER_ERROR' : 'UPLOAD_ERROR'
       });
     }
-    next();
+    return next();
   });
-}, async (req: Request, res: Response) => {
+}, async (req: Request, res: Response): Promise<Response | void> => {
   try {
     const files = req.files as Express.Multer.File[];
 

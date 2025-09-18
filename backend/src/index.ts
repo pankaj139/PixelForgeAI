@@ -8,13 +8,22 @@ export * from './constants';
 // CRITICAL: Load environment variables FIRST before any other imports
 import dotenv from 'dotenv';
 import path from 'path';
+import axios from 'axios';
 
-// Try loading from both backend directory and project root
-console.log('🔧 Loading .env from backend directory...');
-dotenv.config({ path: path.join(__dirname, '../.env') });
+// Configure axios defaults for ngrok
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
 
 
-console.log('🔧 Final GEMINI_API_KEY check:', process.env['GEMINI_API_KEY'] ? 'FOUND' : 'NOT FOUND');
+dotenv.config({ path: path.join(__dirname, '../.env'), });
+
+console.log('🔧 Final INSTAGRAM_CLIENT_ID check:', process.env['INSTAGRAM_CLIENT_ID'] ? 'FOUND' : 'NOT FOUND');
+console.log('🔧 Final INSTAGRAM_CLIENT_SECRET check:', process.env['INSTAGRAM_CLIENT_SECRET'] ? 'FOUND' : 'NOT FOUND');
+console.log('🔧 Final INSTAGRAM_REDIRECT_URI check:', process.env['INSTAGRAM_REDIRECT_URI'] ? 'FOUND' : 'NOT FOUND');
+console.log('🔧 Final FACEBOOK_APP_ID check:', process.env['FACEBOOK_APP_ID'] ? 'FOUND' : 'NOT FOUND');
+console.log('🔧 Final FACEBOOK_APP_SECRET check:', process.env['FACEBOOK_APP_SECRET'] ? 'FOUND' : 'NOT FOUND');
+console.log('🔧 Final FACEBOOK_PAGE_ID check:', process.env['FACEBOOK_PAGE_ID'] ? 'FOUND' : 'NOT FOUND');
+
+
 
 // Express server setup
 import express, { Request, Response } from 'express';
@@ -77,9 +86,14 @@ app.use(correlationIdMiddleware());
 app.use(cors({
   origin: [
     process.env['FRONTEND_URL'] || 'http://localhost:3000',
-    'http://localhost:3002' // Frontend is now running on port 3002
+    'http://localhost:3000', // Frontend running on port 3000
+    'http://localhost:3002', // Backup port
+    'http://127.0.0.1:3000', // Alternative localhost format
+    'http://127.0.0.1:3002'  // Alternative localhost format
   ],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   exposedHeaders: ['Content-Disposition'] // Allow frontend to access Content-Disposition header
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -91,8 +105,7 @@ import uploadRouter from './routes/upload';
 import processingRouter from './routes/processing';
 import downloadRouter from './routes/download';
 import jobHistoryRouter from './routes/jobHistory';
-import instagramAuthRouter from './routes/instagramAuth';
-import instagramPostRouter from './routes/instagramPost';
+import instagramPostRouter from './routes/instagramPost.js';
 import { debugRoutes } from './routes/debug';
 
 // Health check routes
@@ -105,7 +118,6 @@ app.use('/api/upload', uploadRouter);
 app.use('/api/processing', processingRouter);
 app.use('/api/download', downloadRouter);
 app.use('/api/job-history', jobHistoryRouter);
-app.use('/api/instagram', instagramAuthRouter);
 app.use('/api/instagram', instagramPostRouter);
 app.use('/api/debug', debugRoutes);
 

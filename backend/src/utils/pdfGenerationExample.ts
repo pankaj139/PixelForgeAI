@@ -1,11 +1,10 @@
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { sheetCompositionService } from '../services/sheetCompositionService.js';
+import { SheetCompositionService, sheetCompositionService } from '../services/sheetCompositionService.js';
 import { pdfGenerationService } from '../services/pdfGenerationService.js';
-import { ProcessedImage, GridLayout, ProcessingOptions, AspectRatio } from '../types/index.js';
+import { ProcessedImage, ProcessingOptions } from '../types/index.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Resolve directory relative to process.cwd for CommonJS build
+const __dirname = path.join(process.cwd(), 'src/utils');
 
 /**
  * Example function demonstrating PDF generation from processed images
@@ -24,7 +23,7 @@ export async function generatePDFFromImages(
     const finalOutputDir = outputDir || path.join(__dirname, '../temp/pdf-output');
 
     // Get grid layout
-    const gridLayout = sheetCompositionService.constructor.getGridLayoutByName(gridLayoutName);
+  const gridLayout = SheetCompositionService.getGridLayoutByName(gridLayoutName);
     if (!gridLayout) {
       throw new Error(`Invalid grid layout: ${gridLayoutName}`);
     }
@@ -51,6 +50,8 @@ export async function generatePDFFromImages(
     const processingOptions: ProcessingOptions = {
       aspectRatio: processedImages[0]?.aspectRatio || { width: 4, height: 6, name: '4x6' },
       faceDetectionEnabled: true,
+      aiNamingEnabled: false,
+      generateInstagramContent: false,
       sheetComposition: {
         enabled: true,
         gridLayout,
@@ -103,7 +104,7 @@ export async function generateHighResolutionPDFFromImages(
     const finalOutputDir = outputDir || path.join(__dirname, '../temp/pdf-output');
 
     // Get grid layout
-    const gridLayout = sheetCompositionService.constructor.getGridLayoutByName(gridLayoutName);
+  const gridLayout = SheetCompositionService.getGridLayoutByName(gridLayoutName);
     if (!gridLayout) {
       throw new Error(`Invalid grid layout: ${gridLayoutName}`);
     }
@@ -127,6 +128,8 @@ export async function generateHighResolutionPDFFromImages(
     const processingOptions: ProcessingOptions = {
       aspectRatio: processedImages[0]?.aspectRatio || { width: 4, height: 6, name: '4x6' },
       faceDetectionEnabled: true,
+      aiNamingEnabled: false,
+      generateInstagramContent: false,
       sheetComposition: {
         enabled: true,
         gridLayout,
@@ -173,7 +176,7 @@ export async function generateMixedOrientationPDF(
     const portraitImages = processedImages.slice(0, midpoint);
     const landscapeImages = processedImages.slice(midpoint);
 
-    const gridLayout = sheetCompositionService.constructor.getGridLayoutByName('2x2')!;
+  const gridLayout = SheetCompositionService.getGridLayoutByName('2x2')!;
     
     // Create portrait sheets
     const portraitSheets = await sheetCompositionService.composeA4Sheets(
@@ -200,6 +203,8 @@ export async function generateMixedOrientationPDF(
     const processingOptions: ProcessingOptions = {
       aspectRatio: processedImages[0]?.aspectRatio || { width: 4, height: 6, name: '4x6' },
       faceDetectionEnabled: true,
+      aiNamingEnabled: false,
+      generateInstagramContent: false,
       sheetComposition: {
         enabled: true,
         gridLayout,

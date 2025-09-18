@@ -44,11 +44,12 @@ export const useImageUpload = () => {
       
       const response = await uploadApi.uploadImages(formData);
       
-      if (!response.data.success) {
-        throw new Error(response.data.message || 'Upload failed');
+      const data = response.data as UploadResponse;
+      if (!data.success) {
+        throw new Error(data.message || 'Upload failed');
       }
-      
-      return response.data;
+
+      return data;
     },
     onSuccess: (data) => {
       // Invalidate and refetch processing status queries

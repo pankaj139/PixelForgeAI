@@ -104,17 +104,14 @@ export function handlePythonServiceError(error: PythonServiceError): ErrorRespon
   }, error);
 
   // Map Python service errors to appropriate responses
-  let statusCode = error.statusCode;
   let errorCode = error.errorCode || 'PYTHON_SERVICE_ERROR';
   let message = error.message;
 
   // Handle specific error types
   if (error.name === 'PythonServiceConnectionError') {
-    statusCode = 503;
     errorCode = 'SERVICE_UNAVAILABLE';
     message = 'Image processing service is temporarily unavailable';
   } else if (error.name === 'PythonServiceTimeoutError') {
-    statusCode = 504;
     errorCode = 'SERVICE_TIMEOUT';
     message = 'Image processing service request timed out';
   }
@@ -126,7 +123,7 @@ export function handlePythonServiceError(error: PythonServiceError): ErrorRespon
  * Express error handling middleware
  */
 export function errorHandlingMiddleware() {
-  return (error: Error, req: Request, res: Response, next: NextFunction) => {
+  return (error: Error, req: Request, res: Response) => {
     const correlationId = req.correlationId || getCorrelationId();
     
     // Handle different error types

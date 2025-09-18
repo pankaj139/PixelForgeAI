@@ -149,7 +149,7 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
  * Continues processing whether authentication succeeds or fails
  * User info is available if token is valid, undefined otherwise
  */
-export async function optionalAuthentication(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function optionalAuthentication(req: Request, _res: Response, next: NextFunction): Promise<void> {
   try {
     const token = extractToken(req);
     
@@ -215,8 +215,8 @@ export async function authenticateAdmin(req: Request, res: Response, next: NextF
  * Rate limiting integration middleware
  * (Placeholder for future rate limiting implementation)
  */
-export function rateLimitByUser(requestsPerMinute: number = 60) {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export function rateLimitByUser(_requestsPerMinute: number = 60) {
+  return async (_req: Request, _res: Response, next: NextFunction): Promise<void> => {
     // TODO: Implement rate limiting by user ID or IP
     // For now, just pass through
     

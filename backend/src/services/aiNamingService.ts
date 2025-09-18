@@ -277,8 +277,9 @@ export class AiNamingService {
       captionLength = 'medium',
       style = 'casual',
       forceRefresh = false,
-      includeCallToAction = true,
-      mood = 'happy'
+      // capture but intentionally ignore unused properties
+      includeCallToAction: _includeCallToAction = true,
+      mood: _mood = 'happy'
     } = options;
 
     // Check cache first (unless force refresh is requested)
@@ -553,36 +554,7 @@ Make sure the caption is exactly within the word limit and matches the requested
   /**
    * Extract Instagram content manually if JSON parsing fails
    */
-  private extractInstagramContent(text: string, style: string): InstagramContent | null {
-    try {
-      // Try to find caption and hashtags in the text
-      const captionMatch = text.match(/caption['":\s]*([^"\n]+)/i);
-      const hashtagMatch = text.match(/hashtags?['":\s]*\[([^\]]+)\]/i);
-
-      if (captionMatch && hashtagMatch) {
-        const caption = captionMatch[1].trim();
-        const hashtagsText = hashtagMatch[1];
-        const hashtags = hashtagsText.split(',').map(tag => 
-          tag.trim().replace(/['"]/g, '').replace(/^#/, '')
-        );
-
-        const wordCount = this.countWords(caption);
-
-        return {
-          caption,
-          hashtags: hashtags.slice(0, 15),
-          generatedAt: new Date().toISOString(),
-          wordCount,
-          style,
-          alternativeCaptions: []
-        };
-      }
-    } catch (error) {
-      console.warn('Manual Instagram content extraction failed:', error);
-    }
-
-    return null;
-  }
+  // Removed unused extractInstagramContent helper (was not referenced)
 }
 
 // Lazy singleton pattern - create only when first accessed

@@ -55,7 +55,7 @@ export const ResultsPage: React.FC = () => {
       if (!jobId) throw new Error('Job ID is required');
       
       const response = await processingApi.getJobResults(jobId);
-      const data: ProcessingResultsResponse = response.data;
+      const data = response.data as ProcessingResultsResponse;
       
       if (!data.success) {
         throw new Error('Failed to fetch processing results');
@@ -67,7 +67,7 @@ export const ResultsPage: React.FC = () => {
         processedImages: data.results.processedImages.map(img => ({
           ...img,
           // Use actual detections from backend, fallback to empty if not provided
-          detections: img.detections || { faces: [], people: [], confidence: 0 },
+          detections: (img as any).detections || { faces: [], people: [], confidence: 0 },
           createdAt: new Date(img.createdAt)
         })),
         composedSheets: data.results.composedSheets.map(sheet => ({

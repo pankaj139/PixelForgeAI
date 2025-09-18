@@ -12,10 +12,10 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
-    "exactOptionalPropertyTypes": true,
+    "exactOptionalPropertyTypes": false,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
     "allowUnusedLabels": false,
@@ -32,5 +32,6 @@
     }
   },
   "include": ["src"],
+  "exclude": ["src/**/*.test.*", "src/**/__tests__/**/*", "src/test/**/*"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

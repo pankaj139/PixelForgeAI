@@ -224,7 +224,7 @@ const JobHistory: React.FC<JobHistoryProps> = ({ className = '' }) => {
       {/* Statistics Cards */}
       {statistics && (
         <div className="mb-8">
-          <Grid cols={1} sm={2} lg={4} gap="lg">
+          <Grid cols={1} gap="lg">
             <Card className="p-6">
               <div className="flex items-center justify-between">
                 <div>

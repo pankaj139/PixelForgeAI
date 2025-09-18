@@ -117,7 +117,7 @@ export const CompactProcessingSummary: React.FC<CompactProcessingSummaryProps> =
             <div>
               <h4 className="font-medium text-gray-900 mb-2">Processing Options</h4>
               <ul className="space-y-1 text-gray-700">
-                <li>• Aspect Ratio: {processingOptions.aspectRatio.name} ({processingOptions.aspectRatio.value})</li>
+                <li>• Aspect Ratio: {processingOptions.aspectRatio.name} ({processingOptions.aspectRatio.width}x{processingOptions.aspectRatio.height})</li>
                 <li>• Face Detection: {processingOptions.faceDetectionEnabled ? 'Enabled' : 'Disabled'}</li>
                 <li>• AI Naming: {processingOptions.aiNamingEnabled ? 'Enabled' : 'Disabled'}</li>
                 <li>• Instagram Content: {processingOptions.generateInstagramContent ? 'Enabled' : 'Disabled'}</li>

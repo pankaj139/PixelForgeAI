@@ -63,7 +63,7 @@ export const useDownload = () => {
         }
       }
       
-      return { blob: response.data, filename };
+      return { blob: response.data as Blob, filename };
     },
     onSuccess: (result) => {
       // Create download link and trigger download

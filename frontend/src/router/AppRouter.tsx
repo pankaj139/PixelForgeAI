@@ -31,7 +31,6 @@ import UploadPage from '../pages/UploadPage';
 import ProcessingPage from '../pages/ProcessingPage';
 import ResultsPage from '../pages/ResultsPage';
 import JobHistoryPage from '../pages/JobHistoryPage';
-import InstagramCallback from '../pages/InstagramCallback';
 
 export const AppRouter: React.FC = () => {
   return (
@@ -56,9 +55,6 @@ export const AppRouter: React.FC = () => {
             </ProtectedRoute>
           } 
         />
-        
-        {/* Instagram OAuth callback - outside of main layout */}
-        <Route path="/instagram/callback" element={<InstagramCallback />} />
         
         {/* Main application routes with layout */}
         <Route path="/" element={<Layout />}>

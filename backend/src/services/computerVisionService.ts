@@ -52,10 +52,7 @@ export class ComputerVisionService {
         confidence_threshold: 0.4   // Balanced confidence for family photos with varied lighting
       };
 
-      const pythonResponse = await this.pythonClient.detectObjects(detectionRequest);
-      
-      // Extract the detections array from the response
-      const pythonDetections = pythonResponse.detections || [];
+  const pythonDetections = await this.pythonClient.detectObjects(detectionRequest);
       
       // Convert Python service results to our format
       const faces: FaceDetection[] = [];
@@ -139,7 +136,6 @@ export class ComputerVisionService {
   private generatePersonKeypoints(boundingBox: BoundingBox): Keypoint[] {
     const { x, y, width, height } = boundingBox;
     const centerX = x + width / 2;
-    const centerY = y + height / 2;
 
     // Generate basic keypoints (estimated from bounding box)
     return [

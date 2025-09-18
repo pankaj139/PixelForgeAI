@@ -93,6 +93,42 @@ export class JobHistoryService {
   private db = getDatabase();
 
   /**
+   * Retrieve a job by ID (simple pass-through used by instagram routes)
+   */
+  async getJobById(jobId: string) {
+    try {
+      return await this.db.getJob(jobId);
+    } catch (e) {
+      console.error('Error getJobById:', e);
+      return null;
+    }
+  }
+
+  /**
+   * Retrieve a single processed image by its ID
+   */
+  async getProcessedImageById(imageId: string) {
+    try {
+      return await this.db.getProcessedImage(imageId);
+    } catch (e) {
+      console.error('Error getProcessedImageById:', e);
+      return null;
+    }
+  }
+
+  /**
+   * Retrieve all processed images for a job
+   */
+  async getProcessedImagesByJobId(jobId: string) {
+    try {
+      return await this.db.getProcessedImagesByJobId(jobId);
+    } catch (e) {
+      console.error('Error getProcessedImagesByJobId:', e);
+      return [];
+    }
+  }
+
+  /**
    * Get comprehensive job history for a user with filtering and pagination
    * 
    * @param userId - User ID to get job history for
@@ -372,7 +408,7 @@ export class JobHistoryService {
         };
 
         if (options.includeFiles) {
-          (baseData as any).files = job.files.map(file => ({
+          (baseData as any).files = job.files.map((file: any) => ({
             name: file.originalName,
             size: file.size,
             mimeType: file.mimeType,

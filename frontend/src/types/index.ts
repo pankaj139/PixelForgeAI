@@ -101,6 +101,17 @@ export interface InstagramProcessingOptions {
   };
 }
 
+export interface InstagramContentResponse {
+  success: boolean;
+  content: {
+    caption: string;
+    hashtags: string[];
+    style: string;
+    mood: string;
+  };
+  message?: string;
+}
+
 export interface FileMetadata {
   id: string;
   originalName: string;
@@ -129,6 +140,27 @@ export interface JobProgress {
   processedImages: number;
   totalImages: number;
   percentage: number;
+}
+
+export interface JobStatistics {
+  total: number;
+  completed: number;
+  failed: number;
+  processing: number;
+  pending: number;
+  cancelled: number;
+  completionRate: number;
+  averageProcessingTime: number;
+  totalFilesProcessed: number;
+  mostUsedAspectRatio: string;
+  recentActivity: {
+    last7Days: number;
+    last30Days: number;
+  };
+  // Backward compatibility
+  totalJobs: number;
+  completedJobs: number;
+  successRate: number;
 }
 
 export interface BoundingBox {

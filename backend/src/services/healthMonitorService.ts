@@ -62,7 +62,7 @@ class HealthMonitorService {
           });
         }
       } catch (error) {
-        logger.error('Health monitoring failed', {}, error);
+  logger.error('Health monitoring failed', {}, error as Error);
       }
     }, intervalMs);
 

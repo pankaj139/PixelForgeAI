@@ -2,23 +2,22 @@
  * Health check routes for monitoring service status
  */
 
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../utils/errorHandler';
 import { healthMonitorService } from '../services/healthMonitorService';
-import { logger } from '../utils/logger';
 
 const router = Router();
 
 /**
  * Basic health check endpoint
  */
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', asyncHandler(async (_req: Request, res: Response) => {
   const health = await healthMonitorService.getSystemHealth();
   
   const statusCode = health.status === 'healthy' ? 200 : 
                     health.status === 'degraded' ? 200 : 503;
   
-  res.status(statusCode).json({
+  return res.status(statusCode).json({
     status: health.status,
     timestamp: health.timestamp,
     uptime: health.uptime,
@@ -30,22 +29,22 @@ router.get('/', asyncHandler(async (req, res) => {
 /**
  * Detailed health check endpoint
  */
-router.get('/detailed', asyncHandler(async (req, res) => {
+router.get('/detailed', asyncHandler(async (_req: Request, res: Response) => {
   const health = await healthMonitorService.getSystemHealth();
   
   const statusCode = health.status === 'healthy' ? 200 : 
                     health.status === 'degraded' ? 200 : 503;
   
-  res.status(statusCode).json(health);
+  return res.status(statusCode).json(health);
 }));
 
 /**
  * Service metrics endpoint
  */
-router.get('/metrics', asyncHandler(async (req, res) => {
+router.get('/metrics', asyncHandler(async (_req: Request, res: Response) => {
   const metrics = healthMonitorService.getMetrics();
   
-  res.json({
+  return res.json({
     service: 'nodejs-backend',
     metrics,
     timestamp: new Date().toISOString()
@@ -55,19 +54,19 @@ router.get('/metrics', asyncHandler(async (req, res) => {
 /**
  * Readiness probe endpoint
  */
-router.get('/ready', asyncHandler(async (req, res) => {
+router.get('/ready', asyncHandler(async (_req: Request, res: Response) => {
   const health = await healthMonitorService.getSystemHealth();
   
   // Service is ready if it's healthy or degraded (but not unhealthy)
   const isReady = health.status !== 'unhealthy';
   
   if (isReady) {
-    res.json({
+  return res.json({
       status: 'ready',
       timestamp: new Date().toISOString()
     });
   } else {
-    res.status(503).json({
+  return res.status(503).json({
       status: 'not_ready',
       reason: 'Service is unhealthy',
       timestamp: new Date().toISOString(),
@@ -79,9 +78,9 @@ router.get('/ready', asyncHandler(async (req, res) => {
 /**
  * Liveness probe endpoint
  */
-router.get('/live', asyncHandler(async (req, res) => {
+router.get('/live', asyncHandler(async (_req: Request, res: Response) => {
   // Service is alive if it can respond to requests
-  res.json({
+  return res.json({
     status: 'alive',
     uptime: healthMonitorService.getUptimeSeconds(),
     timestamp: new Date().toISOString()

@@ -355,6 +355,19 @@ class Database {
     return images.filter(image => image.jobId === jobId);
   }
 
+  /**
+   * Get most recent processed images (utility for debug tooling)
+   */
+  async getRecentProcessedImages(limit: number = 10): Promise<any[]> {
+    const images = Array.from(this.store.processedImages.values());
+    const sorted = images.sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime; // newest first
+    });
+    return sorted.slice(0, limit);
+  }
+
   // Composed sheet operations
   async createComposedSheet(sheet: any): Promise<void> {
     this.store.composedSheets.set(sheet.id, sheet);

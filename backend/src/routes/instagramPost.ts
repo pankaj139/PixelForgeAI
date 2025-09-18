@@ -1,581 +1,498 @@
 /**
- * Instagram Posting Routes
+ * Instagram Content Generation Routes
  * 
- * This module provides REST API endpoints for direct Instagram posting functionality,
- * enabling users to post processed images with AI-generated captions and hashtags directly to Instagram.
+ * This module provides REST API endpoints for generating Instagram content (captions and hashtags)
+ * that users can manually copy and post to Instagram themselves.
  * 
  * Features:
- * - Single image posting to Instagram feed
- * - Story posting capabilities
- * - Batch posting with progress tracking
- * - Caption refresh and alternatives generation
- * - Post scheduling (if supported)
- * - Post insights and analytics retrieval
+ * - AI-generated captions and hashtags for processed images
+ * - Caption refresh with different styles and moods
+ * - Multiple caption alternatives generation
+ * - Content ready for manual copy-paste to Instagram
  * 
  * Integration:
  * - Works with processed images from PixelForge AI
  * - Uses enhanced Instagram content generation (up to 50 words)
  * - Supports multiple caption styles and moods
- * - Provides real-time posting progress updates
+ * - No direct Instagram posting - content is for manual use
  * 
  * Usage:
  * ```typescript
- * // Post single image
- * POST /api/instagram/post
+ * // Generate content for an image
+ * POST /api/instagram/content/generate
  * {
  *   "imageId": "processed_image_id",
- *   "caption": "AI-generated caption",
- *   "hashtags": ["tag1", "tag2"],
- *   "accessToken": "instagram_access_token"
+ *   "options": { "style": "casual", "mood": "happy" }
  * }
  * 
- * // Batch post images
- * POST /api/instagram/post/batch
+ * // Get caption alternatives
+ * POST /api/instagram/content/alternatives
  * {
- *   "jobId": "processing_job_id",
- *   "accessToken": "instagram_access_token",
- *   "postingOptions": { "delayBetweenPosts": 300 }
+ *   "imageId": "processed_image_id",
+ *   "styles": ["casual", "professional", "creative"]
  * }
  * ```
  * 
- * Returns: Complete posting results with Instagram URLs and engagement data
+ * Returns: Generated content ready for manual Instagram posting
  */
+
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import path from 'path';
-import { instagramMcpService } from '../services/instagramMcpService.js';
 import { aiNamingService } from '../services/aiNamingService.js';
-import { jobHistoryService } from '../services/jobHistoryService.js';
 import { logger } from '../utils/logger.js';
 import { authenticateToken as authMiddleware } from '../middleware/auth.js';
+import fs from 'fs';
+import path from 'path';
 
 const router = Router();
 
 // Input validation schemas
-const PostImageSchema = z.object({
-  imageId: z.string().min(1, 'Image ID is required'),
-  caption: z.string().optional(),
-  hashtags: z.array(z.string()).optional(),
-  accessToken: z.string().min(1, 'Instagram access token is required'),
-  location: z.object({
-    name: z.string(),
-    latitude: z.number().optional(),
-    longitude: z.number().optional()
-  }).optional(),
-  altText: z.string().optional(),
-  isStory: z.boolean().optional().default(false)
-});
-
-const RefreshCaptionSchema = z.object({
+const GenerateContentSchema = z.object({
   imageId: z.string().min(1, 'Image ID is required'),
   options: z.object({
-    captionLength: z.enum(['short', 'medium', 'long']).optional(),
-    style: z.enum(['casual', 'professional', 'creative', 'minimal', 'storytelling']).optional(),
-    mood: z.enum(['happy', 'inspirational', 'professional', 'fun', 'elegant']).optional(),
-    includeCallToAction: z.boolean().optional()
-  }).optional()
-});
-
-const BatchPostSchema = z.object({
-  jobId: z.string().min(1, 'Job ID is required'),
-  accessToken: z.string().min(1, 'Instagram access token is required'),
-  postingOptions: z.object({
-    delayBetweenPosts: z.number().min(5).max(3600).optional().default(300), // 5 seconds to 1 hour
-    postToStory: z.boolean().optional().default(false),
-    skipFailedImages: z.boolean().optional().default(true),
-    captionOptions: z.object({
-      captionLength: z.enum(['short', 'medium', 'long']).optional().default('medium'),
-      style: z.enum(['casual', 'professional', 'creative', 'minimal', 'storytelling']).optional().default('casual'),
-      mood: z.enum(['happy', 'inspirational', 'professional', 'fun', 'elegant']).optional().default('happy')
-    }).optional()
+    style: z.enum(['casual', 'professional', 'creative', 'inspirational', 'humorous']).optional(),
+    mood: z.enum(['happy', 'excited', 'calm', 'thoughtful', 'energetic']).optional(),
+    length: z.enum(['short', 'medium', 'long']).optional(),
+    includeHashtags: z.boolean().optional().default(true),
+    maxHashtags: z.number().min(1).max(30).optional().default(10)
   }).optional().default({})
 });
 
-const CaptionAlternativesSchema = z.object({
+const AlternativesSchema = z.object({
   imageId: z.string().min(1, 'Image ID is required'),
-  styles: z.array(z.enum(['casual', 'professional', 'creative', 'minimal', 'storytelling'])).optional()
+  styles: z.array(z.enum(['casual', 'professional', 'creative', 'inspirational', 'humorous'])).min(1).max(5),
+  options: z.object({
+    includeHashtags: z.boolean().optional().default(true),
+    maxHashtags: z.number().min(1).max(30).optional().default(10)
+  }).optional().default({})
+});
+
+const RefreshContentSchema = z.object({
+  imageId: z.string().min(1, 'Image ID is required'),
+  currentCaption: z.string().optional(),
+  newStyle: z.enum(['casual', 'professional', 'creative', 'inspirational', 'humorous']).optional(),
+  newMood: z.enum(['happy', 'excited', 'calm', 'thoughtful', 'energetic']).optional()
+});
+
+interface ContentOptions {
+  style?: string;
+  mood?: string;
+  length?: string;
+  includeHashtags?: boolean;
+  maxHashtags?: number;
+}
+
+interface GeneratedContent {
+  caption: string;
+  hashtags: string[];
+  formattedPost: string;
+  style: string;
+  mood: string;
+  timestamp: string;
+}
+
+/**
+ * Generate Instagram content for a processed image
+ * Returns AI-generated caption and hashtags for manual posting
+ */
+router.post('/content/generate', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { imageId, options } = GenerateContentSchema.parse(req.body);
+    
+    logger.info(`Generating Instagram content for image: ${imageId}`);
+
+    // Check if image exists in processed folder
+    const processedDir = path.join(process.cwd(), 'processed');
+    const imageFiles = fs.readdirSync(processedDir).filter(file => 
+      file.includes(imageId) && /\.(jpg|jpeg|png|webp)$/i.test(file)
+    );
+
+    if (imageFiles.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Processed image not found',
+        imageId
+      });
+      return;
+    }
+
+    const imageFile = imageFiles[0];
+    const imagePath = path.join(processedDir, imageFile);
+
+    // Extract image info for content generation
+    const imageInfo = {
+      filename: imageFile,
+      path: imagePath,
+      format: path.extname(imageFile).slice(1).toLowerCase()
+    };
+
+    // Generate content using AI naming service
+    const contentPrompt = buildContentPrompt(imageInfo, options);
+    const generatedText = await aiNamingService.generateInstagramContent(contentPrompt);
+    
+    if (!generatedText) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to generate content'
+      });
+      return;
+    }
+
+    const content = parseGeneratedContent(generatedText.caption || generatedText.toString(), options);
+
+    const result: GeneratedContent = {
+      caption: content.caption,
+      hashtags: content.hashtags,
+      formattedPost: formatForInstagram(content.caption, content.hashtags),
+      style: options.style || 'casual',
+      mood: options.mood || 'happy',
+      timestamp: new Date().toISOString()
+    };
+
+    logger.info(`Successfully generated Instagram content for image: ${imageId}`);
+    
+    res.json({
+      success: true,
+      content: result,
+      imageId,
+      instructions: 'Copy the formattedPost content and manually paste it to Instagram'
+    });
+
+  } catch (error) {
+    logger.error('Error generating Instagram content:', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate content'
+    });
+  }
 });
 
 /**
- * Post a single processed image to Instagram
- * 
- * POST /api/instagram/post
- * 
- * Request body:
- * {
- *   "imageId": "processed_image_id",
- *   "caption": "Custom caption (optional)",
- *   "hashtags": ["tag1", "tag2"] (optional),
- *   "accessToken": "instagram_access_token",
- *   "location": { "name": "Location name" } (optional),
- *   "altText": "Accessibility description" (optional),
- *   "isStory": false (optional)
- * }
+ * Generate multiple caption alternatives with different styles
  */
-router.post('/post', authMiddleware, async (req: Request, res: Response) => {
+router.post('/content/alternatives', authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const validatedData = PostImageSchema.parse(req.body);
-    const userId = (req as any).user.id;
+    const { imageId, styles, options } = AlternativesSchema.parse(req.body);
+    
+    logger.info(`Generating ${styles.length} alternative captions for image: ${imageId}`);
 
-    logger.info('Instagram post initiated', {
-      userId,
-      imageId: validatedData.imageId,
-      isStory: validatedData.isStory,
-      hasCustomCaption: !!validatedData.caption
-    });
+    // Check if image exists
+    const processedDir = path.join(process.cwd(), 'processed');
+    const imageFiles = fs.readdirSync(processedDir).filter(file => 
+      file.includes(imageId) && /\.(jpg|jpeg|png|webp)$/i.test(file)
+    );
 
-    // Get the processed image details
-    const processedImage = await jobHistoryService.getProcessedImageById(validatedData.imageId);
-    if (!processedImage) {
-      return res.status(404).json({
+    if (imageFiles.length === 0) {
+      res.status(404).json({
         success: false,
         error: 'Processed image not found',
-        message: 'The specified image ID does not exist or has been deleted'
+        imageId
       });
+      return;
     }
 
-    // Use provided caption/hashtags or generate Instagram content if not provided
-    let caption = validatedData.caption;
-    let hashtags = validatedData.hashtags || [];
+    const imageFile = imageFiles[0];
+    const imagePath = path.join(processedDir, imageFile);
+    const imageInfo = {
+      filename: imageFile,
+      path: imagePath,
+      format: path.extname(imageFile).slice(1).toLowerCase()
+    };
 
-    if (!caption || !hashtags.length) {
-      logger.info('Generating Instagram content for posting', { imageId: validatedData.imageId });
+    // Generate alternatives for each style
+    const alternatives: GeneratedContent[] = [];
+    
+    for (const style of styles) {
+      const styleOptions = { ...options, style };
+      const contentPrompt = buildContentPrompt(imageInfo, styleOptions);
+      const generatedText = await aiNamingService.generateInstagramContent(contentPrompt);
       
-      const instagramContent = processedImage.instagramContent || 
-        await aiNamingService.generateInstagramContent(processedImage.processedPath, {
-          captionLength: 'medium',
-          style: 'casual',
-          mood: 'happy',
-          includeCallToAction: true
-        });
+      if (generatedText) {
+        const content = parseGeneratedContent(generatedText.caption || generatedText.toString(), styleOptions);
 
-      if (instagramContent) {
-        caption = caption || instagramContent.caption;
-        hashtags = hashtags.length > 0 ? hashtags : instagramContent.hashtags;
-      } else {
-        // Fallback caption
-        caption = caption || 'Check out this amazing image! ✨ #PixelForgeAI';
-        hashtags = hashtags.length > 0 ? hashtags : ['photography', 'ai', 'pixelforge'];
+        alternatives.push({
+          caption: content.caption,
+          hashtags: content.hashtags,
+          formattedPost: formatForInstagram(content.caption, content.hashtags),
+          style,
+          mood: 'happy', // Default mood for alternatives
+          timestamp: new Date().toISOString()
+        });
       }
     }
 
-    // Post to Instagram
-    const postResult = await instagramMcpService.postToInstagram({
-      imagePath: processedImage.processedPath,
-      caption,
-      hashtags,
-      accessToken: validatedData.accessToken,
-      location: validatedData.location,
-      altText: validatedData.altText,
-      isStory: validatedData.isStory
+    logger.info(`Successfully generated ${alternatives.length} alternatives for image: ${imageId}`);
+    
+    res.json({
+      success: true,
+      alternatives,
+      imageId,
+      instructions: 'Choose your preferred style and copy the formattedPost content for manual Instagram posting'
     });
 
-    if (postResult.success) {
-      logger.info('Instagram post successful', {
-        userId,
-        imageId: validatedData.imageId,
-        postId: postResult.postId,
-        postUrl: postResult.postUrl,
-        processingTime: postResult.uploadMetrics.processingTime
-      });
+  } catch (error) {
+    logger.error('Error generating content alternatives:', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to generate alternatives'
+    });
+  }
+});
 
-      // TODO: Store posting record in database for tracking
+/**
+ * Refresh/regenerate content with new style or mood
+ */
+router.post('/content/refresh', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { imageId, currentCaption, newStyle, newMood } = RefreshContentSchema.parse(req.body);
+    
+    logger.info(`Refreshing content for image: ${imageId} with new style: ${newStyle}, mood: ${newMood}`);
 
-      res.json({
-        success: true,
-        data: {
-          postId: postResult.postId,
-          postUrl: postResult.postUrl,
-          mediaId: postResult.mediaId,
-          caption,
-          hashtags,
-          uploadMetrics: postResult.uploadMetrics,
-          postedAt: new Date().toISOString(),
-          imageDetails: {
-            originalName: processedImage.id,
-            aspectRatio: processedImage.aspectRatio.name,
-            instagramOptimized: processedImage.instagramOptimized || false
-          }
-        }
-      });
-    } else {
-      logger.error('Instagram post failed', {
-        userId,
-        imageId: validatedData.imageId,
-        error: postResult.error
-      });
+    // Check if image exists
+    const processedDir = path.join(process.cwd(), 'processed');
+    const imageFiles = fs.readdirSync(processedDir).filter(file => 
+      file.includes(imageId) && /\.(jpg|jpeg|png|webp)$/i.test(file)
+    );
 
+    if (imageFiles.length === 0) {
+      res.status(404).json({
+        success: false,
+        error: 'Processed image not found',
+        imageId
+      });
+      return;
+    }
+
+    const imageFile = imageFiles[0];
+    const imagePath = path.join(processedDir, imageFile);
+    const imageInfo = {
+      filename: imageFile,
+      path: imagePath,
+      format: path.extname(imageFile).slice(1).toLowerCase()
+    };
+
+    const refreshOptions = {
+      style: newStyle || 'casual',
+      mood: newMood || 'happy',
+      includeHashtags: true,
+      maxHashtags: 10
+    };
+
+    // Generate refreshed content
+    const contentPrompt = buildRefreshPrompt(imageInfo, currentCaption, refreshOptions);
+    const generatedText = await aiNamingService.generateInstagramContent(contentPrompt);
+    
+    if (!generatedText) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to generate refreshed content'
+      });
+      return;
+    }
+
+    const content = parseGeneratedContent(generatedText.caption || generatedText.toString(), refreshOptions);
+
+    const result: GeneratedContent = {
+      caption: content.caption,
+      hashtags: content.hashtags,
+      formattedPost: formatForInstagram(content.caption, content.hashtags),
+      style: refreshOptions.style,
+      mood: refreshOptions.mood,
+      timestamp: new Date().toISOString()
+    };
+
+    logger.info(`Successfully refreshed content for image: ${imageId}`);
+    
+    res.json({
+      success: true,
+      content: result,
+      previous: currentCaption,
+      imageId,
+      instructions: 'Copy the new formattedPost content for manual Instagram posting'
+    });
+
+  } catch (error) {
+    logger.error('Error refreshing content:', { error: error instanceof Error ? error.message : String(error) });
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to refresh content'
+    });
+  }
+});
+
+/**
+ * Get content for batch of images from a processing job
+ */
+router.post('/content/batch', authMiddleware, async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { jobId, options = {} } = req.body;
+    
+    if (!jobId) {
       res.status(400).json({
         success: false,
-        error: 'Instagram posting failed',
-        message: postResult.error,
-        suggestions: [
-          'Check if your Instagram access token is valid',
-          'Verify the image meets Instagram\'s requirements',
-          'Ensure your account has posting permissions'
-        ]
+        error: 'Job ID is required'
       });
+      return;
     }
 
-  } catch (error) {
-    logger.error('Instagram post request failed', { 
-      error: error instanceof Error ? error.message : String(error),
-      userId: (req as any).user?.id
-    });
+    logger.info(`Generating batch content for job: ${jobId}`);
 
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid request data',
-        details: error.errors
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      error: 'Instagram posting failed',
-      message: 'An unexpected error occurred during posting'
-    });
-  }
-});
-
-/**
- * Refresh caption for an image with new options
- * 
- * POST /api/instagram/caption/refresh
- * 
- * Request body:
- * {
- *   "imageId": "processed_image_id",
- *   "options": {
- *     "captionLength": "long",
- *     "style": "professional",
- *     "mood": "inspirational",
- *     "includeCallToAction": true
- *   }
- * }
- */
-router.post('/caption/refresh', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const validatedData = RefreshCaptionSchema.parse(req.body);
-    const userId = (req as any).user.id;
-
-    logger.info('Caption refresh requested', {
-      userId,
-      imageId: validatedData.imageId,
-      options: validatedData.options
-    });
-
-    // Get the processed image details
-    const processedImage = await jobHistoryService.getProcessedImageById(validatedData.imageId);
-    if (!processedImage) {
-      return res.status(404).json({
-        success: false,
-        error: 'Processed image not found',
-        message: 'The specified image ID does not exist or has been deleted'
-      });
-    }
-
-    // Generate new Instagram content with specified options
-    const refreshedContent = await aiNamingService.refreshInstagramContent(
-      processedImage.processedPath,
-      {
-        ...validatedData.options,
-        forceRefresh: true
-      }
+    // Generate content for each processed image
+    const batchContent: (GeneratedContent & { imageId: string })[] = [];
+    const processedDir = path.join(process.cwd(), 'processed');
+    
+    // Find all processed images from this job
+    const processedFiles = fs.readdirSync(processedDir).filter(file => 
+      file.includes(jobId) && /\.(jpg|jpeg|png|webp)$/i.test(file)
     );
 
-    if (!refreshedContent) {
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to generate refreshed caption',
-        message: 'AI content generation is currently unavailable'
-      });
-    }
+    for (const imageFile of processedFiles) {
+      try {
+        const imageId = extractImageId(imageFile);
+        const imagePath = path.join(processedDir, imageFile);
+        const imageInfo = {
+          filename: imageFile,
+          path: imagePath,
+          format: path.extname(imageFile).slice(1).toLowerCase()
+        };
 
-    logger.info('Caption refreshed successfully', {
-      userId,
-      imageId: validatedData.imageId,
-      newWordCount: refreshedContent.wordCount,
-      style: refreshedContent.style
-    });
-
-    res.json({
-      success: true,
-      data: {
-        caption: refreshedContent.caption,
-        hashtags: refreshedContent.hashtags,
-        wordCount: refreshedContent.wordCount,
-        style: refreshedContent.style,
-        alternativeCaptions: refreshedContent.alternativeCaptions || [],
-        generatedAt: refreshedContent.generatedAt,
-        options: validatedData.options
-      }
-    });
-
-  } catch (error) {
-    logger.error('Caption refresh failed', { 
-      error: error instanceof Error ? error.message : String(error),
-      userId: (req as any).user?.id
-    });
-
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid request data',
-        details: error.errors
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      error: 'Caption refresh failed',
-      message: 'Unable to generate new caption content'
-    });
-  }
-});
-
-/**
- * Generate caption alternatives in different styles
- * 
- * POST /api/instagram/caption/alternatives
- * 
- * Request body:
- * {
- *   "imageId": "processed_image_id",
- *   "styles": ["casual", "professional", "creative"] (optional)
- * }
- */
-router.post('/caption/alternatives', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const validatedData = CaptionAlternativesSchema.parse(req.body);
-    const userId = (req as any).user.id;
-
-    const alternativeStyles = validatedData.styles || ['casual', 'professional', 'creative'];
-
-    logger.info('Caption alternatives requested', {
-      userId,
-      imageId: validatedData.imageId,
-      styles: alternativeStyles
-    });
-
-    // Get the processed image details
-    const processedImage = await jobHistoryService.getProcessedImageById(validatedData.imageId);
-    if (!processedImage) {
-      return res.status(404).json({
-        success: false,
-        error: 'Processed image not found',
-        message: 'The specified image ID does not exist or has been deleted'
-      });
-    }
-
-    // Generate caption alternatives
-    const alternatives = await aiNamingService.generateCaptionAlternatives(
-      processedImage.processedPath,
-      { captionLength: 'medium', mood: 'happy' },
-      alternativeStyles
-    );
-
-    const validAlternatives = Object.entries(alternatives)
-      .filter(([_, content]) => content !== null)
-      .reduce((acc, [style, content]) => {
-        acc[style] = content;
-        return acc;
-      }, {} as { [style: string]: any });
-
-    if (Object.keys(validAlternatives).length === 0) {
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to generate caption alternatives',
-        message: 'AI content generation is currently unavailable'
-      });
-    }
-
-    logger.info('Caption alternatives generated', {
-      userId,
-      imageId: validatedData.imageId,
-      generatedStyles: Object.keys(validAlternatives)
-    });
-
-    res.json({
-      success: true,
-      data: {
-        alternatives: validAlternatives,
-        generatedAt: new Date().toISOString(),
-        availableStyles: alternativeStyles
-      }
-    });
-
-  } catch (error) {
-    logger.error('Caption alternatives generation failed', { 
-      error: error instanceof Error ? error.message : String(error),
-      userId: (req as any).user?.id
-    });
-
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid request data',
-        details: error.errors
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      error: 'Caption alternatives generation failed',
-      message: 'Unable to generate alternative captions'
-    });
-  }
-});
-
-/**
- * Batch post all processed images from a job to Instagram
- * 
- * POST /api/instagram/post/batch
- * 
- * Request body:
- * {
- *   "jobId": "processing_job_id",
- *   "accessToken": "instagram_access_token",
- *   "postingOptions": {
- *     "delayBetweenPosts": 300,
- *     "postToStory": false,
- *     "skipFailedImages": true,
- *     "captionOptions": {
- *       "captionLength": "medium",
- *       "style": "casual",
- *       "mood": "happy"
- *     }
- *   }
- * }
- */
-router.post('/post/batch', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const validatedData = BatchPostSchema.parse(req.body);
-    const userId = (req as any).user.id;
-
-    logger.info('Batch Instagram posting initiated', {
-      userId,
-      jobId: validatedData.jobId,
-      options: validatedData.postingOptions
-    });
-
-    // Get job details and processed images
-    const job = await jobHistoryService.getJobById(validatedData.jobId);
-    if (!job) {
-      return res.status(404).json({
-        success: false,
-        error: 'Job not found',
-        message: 'The specified job ID does not exist'
-      });
-    }
-
-    const processedImages = await jobHistoryService.getProcessedImagesByJobId(validatedData.jobId);
-    if (!processedImages || processedImages.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'No processed images found',
-        message: 'The job has no processed images available for posting'
-      });
-    }
-
-    // Generate Instagram content for images that don't have it
-    const imagesWithContent = await Promise.all(
-      processedImages.map(async (image) => {
-        if (!image.instagramContent && validatedData.postingOptions.captionOptions) {
-          const content = await aiNamingService.generateInstagramContent(
-            image.processedPath,
-            {
-              ...validatedData.postingOptions.captionOptions,
-              includeCallToAction: true
-            }
-          );
-          
-          if (content) {
-            image.instagramContent = content;
-          }
-        }
-        return image;
-      })
-    );
-
-    // Start batch posting
-    const postingResults = await instagramMcpService.batchPostToInstagram(
-      imagesWithContent,
-      {
-        accessToken: validatedData.accessToken,
-        isStory: validatedData.postingOptions.postToStory
-      },
-      (completed: number, total: number) => {
-        logger.info('Batch posting progress', {
-          userId,
-          jobId: validatedData.jobId,
-          completed,
-          total,
-          progress: Math.round((completed / total) * 100)
-        });
+        const contentPrompt = buildContentPrompt(imageInfo, options);
+        const generatedText = await aiNamingService.generateInstagramContent(contentPrompt);
         
-        // TODO: Emit real-time progress updates to client via WebSocket/SSE
+        if (generatedText) {
+          const content = parseGeneratedContent(generatedText.caption || generatedText.toString(), options);
+
+          batchContent.push({
+            imageId,
+            caption: content.caption,
+            hashtags: content.hashtags,
+            formattedPost: formatForInstagram(content.caption, content.hashtags),
+            style: options.style || 'casual',
+            mood: options.mood || 'happy',
+            timestamp: new Date().toISOString()
+          });
+        }
+
+      } catch (error) {
+        logger.error(`Error generating content for image ${imageFile}:`, { error: error instanceof Error ? error.message : String(error) });
       }
-    );
+    }
 
-    const successCount = postingResults.filter(r => r.success).length;
-    const failureCount = postingResults.length - successCount;
-
-    logger.info('Batch Instagram posting completed', {
-      userId,
-      jobId: validatedData.jobId,
-      totalImages: postingResults.length,
-      successful: successCount,
-      failed: failureCount
-    });
-
-    // TODO: Store batch posting record in database
-
+    logger.info(`Successfully generated content for ${batchContent.length} images from job: ${jobId}`);
+    
     res.json({
       success: true,
-      data: {
-        totalImages: postingResults.length,
-        successful: successCount,
-        failed: failureCount,
-        results: postingResults.map((result, index) => ({
-          imageIndex: index,
-          imageId: processedImages[index].id,
-          success: result.success,
-          postId: result.postId,
-          postUrl: result.postUrl,
-          error: result.error,
-          uploadMetrics: result.uploadMetrics
-        })),
-        completedAt: new Date().toISOString(),
-        statistics: {
-          totalProcessingTime: postingResults.reduce((sum, r) => sum + r.uploadMetrics.processingTime, 0),
-          averageFileSize: Math.round(postingResults.reduce((sum, r) => sum + r.uploadMetrics.fileSize, 0) / postingResults.length),
-          successRate: Math.round((successCount / postingResults.length) * 100)
-        }
-      }
+      batchContent,
+      jobId,
+      totalImages: batchContent.length,
+      instructions: 'Copy each formattedPost content and manually post to Instagram'
     });
 
   } catch (error) {
-    logger.error('Batch Instagram posting failed', { 
-      error: error instanceof Error ? error.message : String(error),
-      userId: (req as any).user?.id
-    });
-
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid request data',
-        details: error.errors
-      });
-    }
-
+    logger.error('Error generating batch content:', { error: error instanceof Error ? error.message : String(error) });
     res.status(500).json({
       success: false,
-      error: 'Batch posting failed',
-      message: 'An unexpected error occurred during batch posting'
+      error: error instanceof Error ? error.message : 'Failed to generate batch content'
     });
   }
 });
+
+// Helper functions
+
+function buildContentPrompt(imageInfo: any, options: ContentOptions): string {
+  const style = options.style || 'casual';
+  const mood = options.mood || 'happy';
+  const length = options.length || 'medium';
+  
+  return `Generate an engaging Instagram caption for this processed image: ${imageInfo.filename}
+  
+Style: ${style}
+Mood: ${mood}
+Length: ${length}
+Include hashtags: ${options.includeHashtags !== false}
+Max hashtags: ${options.maxHashtags || 10}
+
+Requirements:
+- Create an engaging caption that matches the ${style} style and ${mood} mood
+- ${length === 'short' ? 'Keep it concise (1-2 sentences)' : length === 'long' ? 'Make it detailed and storytelling' : 'Use medium length (2-3 sentences)'}
+- ${options.includeHashtags !== false ? `Include ${options.maxHashtags || 10} relevant hashtags` : 'Do not include hashtags'}
+- Make it authentic and engaging for Instagram audience
+- Focus on the visual content and emotional impact
+
+Return in format:
+CAPTION: [your caption here]
+HASHTAGS: [hashtag1, hashtag2, hashtag3, ...]`;
+}
+
+function buildRefreshPrompt(imageInfo: any, currentCaption: string | undefined, options: ContentOptions): string {
+  const style = options.style || 'casual';
+  const mood = options.mood || 'happy';
+  
+  return `Refresh and improve this Instagram content for image: ${imageInfo.filename}
+
+Current caption: ${currentCaption || 'None provided'}
+New style: ${style}
+New mood: ${mood}
+
+Requirements:
+- Create a completely new caption with the ${style} style and ${mood} mood
+- Make it different from the current caption while keeping the same image context
+- Include ${options.maxHashtags || 10} fresh, relevant hashtags
+- Ensure it's engaging and authentic for Instagram
+
+Return in format:
+CAPTION: [your new caption here]
+HASHTAGS: [hashtag1, hashtag2, hashtag3, ...]`;
+}
+
+function parseGeneratedContent(generatedText: string, options: ContentOptions): { caption: string; hashtags: string[] } {
+  try {
+    const lines = generatedText.split('\n');
+    let caption = '';
+    let hashtags: string[] = [];
+
+    for (const line of lines) {
+      if (line.startsWith('CAPTION:')) {
+        caption = line.replace('CAPTION:', '').trim();
+      } else if (line.startsWith('HASHTAGS:')) {
+        const hashtagText = line.replace('HASHTAGS:', '').trim();
+        hashtags = hashtagText
+          .split(',')
+          .map(tag => tag.trim())
+          .filter(tag => tag.length > 0)
+          .map(tag => tag.startsWith('#') ? tag : `#${tag}`)
+          .slice(0, options.maxHashtags || 10);
+      }
+    }
+
+    // Fallback if parsing fails
+    if (!caption) {
+      caption = generatedText.trim();
+    }
+    
+    if (hashtags.length === 0 && options.includeHashtags !== false) {
+      hashtags = ['#pixelforge', '#aiprocessed', '#instagram'];
+    }
+
+    return { caption, hashtags };
+  } catch (error) {
+    logger.error('Error parsing generated content:', { error: error instanceof Error ? error.message : String(error) });
+    return {
+      caption: 'Beautiful processed image ready for Instagram!',
+      hashtags: ['#pixelforge', '#aiprocessed', '#instagram']
+    };
+  }
+}
+
+function formatForInstagram(caption: string, hashtags: string[]): string {
+  return `${caption}\n\n${hashtags.join(' ')}`;
+}
+
+function extractImageId(filename: string): string {
+  // Extract image ID from processed filename
+  // Example: "processed_image_123_456.jpeg" -> "123_456"
+  const match = filename.match(/processed_(.+?)_\w+\.(jpg|jpeg|png|webp)$/i);
+  return match ? match[1] : filename.replace(/\.(jpg|jpeg|png|webp)$/i, '');
+}
 
 export default router;

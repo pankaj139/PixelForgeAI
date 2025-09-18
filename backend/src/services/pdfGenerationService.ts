@@ -71,8 +71,8 @@ export class PDFGenerationService {
    * Adds metadata to the PDF document
    */
   private addMetadata(
-    doc: PDFDocument, 
-    sheets: ComposedSheet[], 
+    doc: any,
+    sheets: ComposedSheet[],
     processingOptions?: ProcessingOptions
   ): void {
     const now = new Date();
@@ -89,7 +89,7 @@ export class PDFGenerationService {
 
     // Add processing options as custom metadata if available
     if (processingOptions) {
-      const metadata = {
+      const metadata: Record<string, string> = {
         AspectRatio: processingOptions.aspectRatio.name,
         FaceDetectionEnabled: processingOptions.faceDetectionEnabled.toString(),
         TotalSheets: sheets.length.toString(),
@@ -110,7 +110,7 @@ export class PDFGenerationService {
   /**
    * Adds a composed sheet image to the current PDF page
    */
-  private async addSheetToPage(doc: PDFDocument, sheet: ComposedSheet): Promise<void> {
+  private async addSheetToPage(doc: any, sheet: ComposedSheet): Promise<void> {
     try {
       // Check if sheet file exists
       if (!fs.existsSync(sheet.sheetPath)) {
@@ -142,7 +142,7 @@ export class PDFGenerationService {
   /**
    * Adds an error page when a sheet cannot be processed
    */
-  private addErrorPage(doc: PDFDocument, sheet: ComposedSheet, error: Error): void {
+  private addErrorPage(doc: any, sheet: ComposedSheet, error: Error): void {
     const pageDimensions = sheet.orientation === 'portrait' 
       ? PDFGenerationService.A4_PORTRAIT 
       : PDFGenerationService.A4_LANDSCAPE;
@@ -227,7 +227,7 @@ export class PDFGenerationService {
   /**
    * Adds a sheet to the PDF page with high-resolution settings
    */
-  private async addHighResolutionSheetToPage(doc: PDFDocument, sheet: ComposedSheet): Promise<void> {
+  private async addHighResolutionSheetToPage(doc: any, sheet: ComposedSheet): Promise<void> {
     try {
       // Check if sheet file exists
       if (!fs.existsSync(sheet.sheetPath)) {

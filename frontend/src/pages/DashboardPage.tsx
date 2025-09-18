@@ -207,7 +207,7 @@ const DashboardPage: React.FC = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Jobs</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {statsLoading ? '...' : stats?.totalJobs || 0}
+                    {statsLoading ? '...' : stats?.total || 0}
                   </p>
                   <p className="text-sm text-gray-500">All time</p>
                 </div>
@@ -226,7 +226,7 @@ const DashboardPage: React.FC = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Completed</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {statsLoading ? '...' : stats?.completedJobs || 0}
+                    {statsLoading ? '...' : stats?.completed || 0}
                   </p>
                   <p className="text-sm text-gray-500">Successfully processed</p>
                 </div>
@@ -245,7 +245,7 @@ const DashboardPage: React.FC = () => {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Success Rate</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {statsLoading ? '...' : `${stats?.successRate || 0}%`}
+                    {statsLoading ? '...' : `${stats?.completionRate || 0}%`}
                   </p>
                   <p className="text-sm text-gray-500">Processing accuracy</p>
                 </div>

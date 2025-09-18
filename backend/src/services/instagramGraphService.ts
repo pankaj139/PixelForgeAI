@@ -41,10 +41,14 @@
  * Returns: Complete posting results with Instagram post URLs and engagement metrics
  */
 import axios from 'axios';
-import FormData from 'form-data';
 import fs from 'fs/promises';
 import { logger } from '../utils/logger.js';
-import { ProcessedImage } from '../types/index.js';
+
+// Local response DTOs to safely cast axios unknown data
+interface MediaContainerResponse { id: string }
+interface PublishResponse { id: string }
+interface StatusResponse { status_code?: string }
+interface PublishingLimitResponse { quota_usage?: number }
 
 // Instagram Graph API constants (official endpoints)
 const INSTAGRAM_GRAPH_API = 'https://graph.instagram.com/v23.0';
@@ -87,7 +91,7 @@ export interface InstagramPostOptions {
   altText?: string; // Accessibility description
   isStory?: boolean; // Post to story instead of feed
   isReel?: boolean; // Post as reel
-  scheduledTime?: Date; // Schedule post for later (if supported)
+  scheduledTime?: Date;
 }
 
 export interface InstagramPostResult {
@@ -144,7 +148,6 @@ export class InstagramGraphService {
       response_type: 'code',
       ...(state && { state })
     });
-
     return `${FACEBOOK_OAUTH_BASE}?${params.toString()}`;
   }
 
@@ -336,7 +339,8 @@ export class InstagramGraphService {
         }
       );
 
-      const containerId = response.data.id;
+  const data = response.data as MediaContainerResponse;
+  const containerId = data.id;
       logger.info('Media container created', { containerId, mediaType });
 
       return { success: true, containerId };
@@ -376,7 +380,8 @@ export class InstagramGraphService {
         }
       );
 
-      const postId = response.data.id;
+  const data = response.data as PublishResponse;
+  const postId = data.id;
       const postUrl = `https://www.instagram.com/p/${postId}/`;
 
       logger.info('Media container published', { postId, containerId });
@@ -427,7 +432,8 @@ export class InstagramGraphService {
         }
       });
 
-      return { status: response.data.status_code };
+  const data = response.data as StatusResponse;
+  return { status: data.status_code || 'UNKNOWN' };
 
     } catch (error) {
       return { 
@@ -450,10 +456,9 @@ export class InstagramGraphService {
         }
       });
 
-      return {
-        used: response.data.quota_usage || 0,
-        remaining: (this.MAX_POSTS_PER_DAY - (response.data.quota_usage || 0))
-      };
+  const data = response.data as PublishingLimitResponse;
+  const used = data.quota_usage || 0;
+  return { used, remaining: this.MAX_POSTS_PER_DAY - used };
 
     } catch (error) {
       logger.error('Failed to check publishing limit', { 
@@ -468,7 +473,7 @@ export class InstagramGraphService {
    * 
    * Instagram API requires media to be hosted on a publicly accessible server
    */
-  private async uploadImageToTemporaryUrl(imagePath: string): Promise<string> {
+  private async uploadImageToTemporaryUrl(_imagePath: string): Promise<string> {
     // For now, we'll use a placeholder. In production, you'd upload to:
     // - AWS S3
     // - Google Cloud Storage
@@ -494,7 +499,7 @@ export class InstagramGraphService {
   /**
    * Find location ID by name (simplified implementation)
    */
-  private async findLocationId(locationName: string): Promise<string | null> {
+  private async findLocationId(_locationName: string): Promise<string | null> {
     // This would typically use Facebook Places API
     // For now, return null (no location)
     return null;

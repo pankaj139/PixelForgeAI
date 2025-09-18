@@ -176,12 +176,24 @@ export function isCropAreaValid(cropArea: CropArea, imageWidth: number, imageHei
 // Safe parsing functions that return the parsed value or null
 export function safeParseAspectRatio(value: unknown): AspectRatio | null {
   const result = AspectRatioSchema.safeParse(value);
-  return result.success ? result.data : null;
+  if (!result.success) return null;
+  // Ensure orientation present (schema should enforce, but guard against legacy objects)
+  if (!('orientation' in result.data)) {
+    return null;
+  }
+  return result.data as AspectRatio;
 }
 
 export function safeParseJob(value: unknown): Job | null {
   const result = JobSchema.safeParse(value);
-  return result.success ? result.data : null;
+  if (!result.success) return null;
+  // Patch legacy options missing new required flags
+  if (result.data && (result.data as any).options) {
+    const opts: any = (result.data as any).options;
+    if (typeof opts.aiNamingEnabled === 'undefined') opts.aiNamingEnabled = true;
+    if (typeof opts.generateInstagramContent === 'undefined') opts.generateInstagramContent = true;
+  }
+  return result.data as Job;
 }
 
 export function safeParseDetectionResult(value: unknown): DetectionResult | null {
@@ -191,5 +203,8 @@ export function safeParseDetectionResult(value: unknown): DetectionResult | null
 
 export function safeParseProcessedImage(value: unknown): ProcessedImage | null {
   const result = ProcessedImageSchema.safeParse(value);
-  return result.success ? result.data : null;
+  if (!result.success) return null;
+  // Ensure aspect ratio has orientation
+  if (!(result.data.aspectRatio as any).orientation) return null;
+  return result.data as ProcessedImage;
 }

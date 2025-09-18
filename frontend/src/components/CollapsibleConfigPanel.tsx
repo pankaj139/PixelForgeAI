@@ -33,7 +33,7 @@ import Card from './ui/Card';
 
 interface CollapsibleConfigPanelProps {
   processingOptions: ProcessingOptions;
-  onAspectRatioChange: (aspectRatio: typeof processingOptions.aspectRatio) => void;
+  onAspectRatioChange: (aspectRatio: ProcessingOptions['aspectRatio']) => void;
   onProcessingOptionsChange: (options: ProcessingOptions) => void;
   onSheetCompositionChange: (sheetComposition: ProcessingOptions['sheetComposition']) => void;
 }

@@ -58,7 +58,7 @@ export const useProcessingStatus = (jobId: string | undefined, enabled = true) =
       
       try {
         const response = await processingApi.getJobProgress(jobId);
-        const data: ProcessingStatusResponse = response.data;
+        const data = response.data as ProcessingStatusResponse;
         
         if (!data.success) {
           throw new Error('Failed to fetch processing status');
@@ -75,7 +75,6 @@ export const useProcessingStatus = (jobId: string | undefined, enabled = true) =
             percentage: data.progress.percentage
           },
           processedImages: [], // Will be populated from results endpoint when completed
-          composedSheets: [], // Will be populated from results endpoint when completed
           ...(data.errorMessage && { errors: [data.errorMessage] }),
           // Add processing options to determine which stages to show
           options: data.options

@@ -40,10 +40,13 @@
  * Returns: Complete posting results with Instagram post URLs and engagement metrics
  */
 import axios from 'axios';
-import FormData from 'form-data';
 import fs from 'fs/promises';
 import { logger } from '../utils/logger.js';
-import { ProcessedImage } from '../types/index.js';
+
+interface MediaContainerResponse { id: string }
+interface PublishResponse { id: string }
+interface StatusResponse { status_code?: string }
+interface PublishingLimitResponse { quota_usage?: number }
 
 // Instagram Graph API constants (official endpoints)
 const INSTAGRAM_GRAPH_API = 'https://graph.instagram.com/v23.0';
@@ -323,7 +326,8 @@ export class InstagramLoginService {
         }
       );
 
-      const containerId = response.data.id;
+  const data = response.data as MediaContainerResponse;
+  const containerId = data.id;
       logger.info('Media container created', { containerId, mediaType });
 
       return { success: true, containerId };
@@ -363,7 +367,8 @@ export class InstagramLoginService {
         }
       );
 
-      const postId = response.data.id;
+  const data = response.data as PublishResponse;
+  const postId = data.id;
       const postUrl = `https://www.instagram.com/p/${postId}/`;
 
       logger.info('Media container published', { postId, containerId });
@@ -414,7 +419,8 @@ export class InstagramLoginService {
         }
       });
 
-      return { status: response.data.status_code };
+  const data = response.data as StatusResponse;
+  return { status: data.status_code || 'UNKNOWN' };
 
     } catch (error) {
       return { 
@@ -437,10 +443,9 @@ export class InstagramLoginService {
         }
       });
 
-      return {
-        used: response.data.quota_usage || 0,
-        remaining: (this.MAX_POSTS_PER_DAY - (response.data.quota_usage || 0))
-      };
+  const data = response.data as PublishingLimitResponse;
+  const used = data.quota_usage || 0;
+  return { used, remaining: this.MAX_POSTS_PER_DAY - used };
 
     } catch (error) {
       logger.error('Failed to check publishing limit', { 
@@ -455,7 +460,7 @@ export class InstagramLoginService {
    * 
    * Instagram API requires media to be hosted on a publicly accessible server
    */
-  private async uploadImageToTemporaryUrl(imagePath: string): Promise<string> {
+  private async uploadImageToTemporaryUrl(_imagePath: string): Promise<string> {
     // For now, we'll use a placeholder. In production, you'd upload to:
     // - AWS S3
     // - Google Cloud Storage
@@ -481,7 +486,7 @@ export class InstagramLoginService {
   /**
    * Find location ID by name (simplified implementation)
    */
-  private async findLocationId(locationName: string): Promise<string | null> {
+  private async findLocationId(_locationName: string): Promise<string | null> {
     // This would typically use Instagram Places API
     // For now, return null (no location)
     return null;
@@ -520,6 +525,33 @@ export class InstagramLoginService {
     if (tokenData) {
       tokenData.count++;
     }
+  }
+
+  /**
+   * Refresh an Instagram User access token (placeholder — real implementation depends on long-lived token flow)
+   */
+  async refreshAccessToken(accessToken: string): Promise<InstagramAccessToken> {
+    try {
+      // Instagram Basic Display (deprecated) had refresh endpoint; Graph tokens may need re-auth.
+      // Return same token for now with mocked extension.
+      return {
+        access_token: accessToken,
+        token_type: 'bearer',
+        user_id: 'unknown'
+      };
+    } catch (e) {
+      logger.error('Failed to refresh access token', { error: e instanceof Error ? e.message : String(e) });
+      throw e;
+    }
+  }
+
+  /**
+   * Validate an access token (shallow check / placeholder)
+   */
+  async validateAccessToken(accessToken: string): Promise<boolean> {
+    if (!accessToken) return false;
+    // Could add a lightweight /me call; keep minimal to avoid rate usage.
+    return true;
   }
 }
 

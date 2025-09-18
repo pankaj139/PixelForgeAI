@@ -33,9 +33,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { authService } from '../services/authService';
-import type { User, UserLogin, UserRegistration, AuthState } from '../types';
+import type { User, UserLogin, UserRegistration, AuthState, JobStatistics } from '../types';
 
-interface UseAuthReturn extends AuthState {
+export interface UseAuthReturn extends AuthState {
   login: (credentials: UserLogin, rememberMe?: boolean) => Promise<{
     success: boolean;
     message?: string;
@@ -449,7 +449,7 @@ export function useAuth(): UseAuthReturn {
  * Hook for getting user statistics
  */
 export function useUserStats() {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState<JobStatistics | null>(null);
   const [recentJobs, setRecentJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

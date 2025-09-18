@@ -20,7 +20,7 @@ const router = Router();
 /**
  * Clear AI naming cache
  */
-router.post('/clear-ai-cache', async (req, res) => {
+router.post('/clear-ai-cache', async (_req, res) => {
   try {
     debugUtils.clearAINamingCache();
     res.json({
@@ -71,7 +71,7 @@ router.get('/recent-images', async (req, res) => {
 /**
  * Check processed directory
  */
-router.get('/processed-directory', async (req, res) => {
+router.get('/processed-directory', async (_req, res) => {
   try {
     // Capture console output
     const originalLog = console.log;
@@ -101,7 +101,7 @@ router.get('/processed-directory', async (req, res) => {
 /**
  * Get AI naming cache statistics
  */
-router.get('/cache-stats', async (req, res) => {
+router.get('/cache-stats', async (_req, res) => {
   try {
     const stats = aiNamingService.getCacheStats();
     

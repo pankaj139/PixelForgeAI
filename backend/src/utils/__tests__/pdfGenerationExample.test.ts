@@ -13,14 +13,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Mock the services
-vi.mock('../../services/sheetCompositionService.js', () => ({
-  sheetCompositionService: {
-    composeA4Sheets: vi.fn(),
-    constructor: {
+vi.mock('../../services/sheetCompositionService.js', async () => {
+  const actual = await vi.importActual('../../services/sheetCompositionService.js');
+  return {
+    ...actual,
+    SheetCompositionService: {
       getGridLayoutByName: vi.fn()
+    },
+    sheetCompositionService: {
+      composeA4Sheets: vi.fn()
     }
-  }
-}));
+  };
+});
 
 vi.mock('../../services/pdfGenerationService.js', () => ({
   pdfGenerationService: {
@@ -40,7 +44,7 @@ describe('PDF Generation Example Functions', () => {
     await fs.mkdir(testOutputDir, { recursive: true });
 
     // Create mock processed images
-    const aspectRatio: AspectRatio = { width: 4, height: 6, name: '4x6' };
+    const aspectRatio: AspectRatio = { width: 4, height: 6, name: '4x6', orientation: 'portrait' };
     const detections: DetectionResult = { faces: [], people: [], confidence: 0 };
 
     mockProcessedImages = [
